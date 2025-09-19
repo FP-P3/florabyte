@@ -1,64 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
-
-const products = [
-  {
-    name: "Organic Aloe Fertilizer",
-    description: "Special fertilizer mix for Aloe Vera and succulents",
-    price: 75000,
-    stock: 200,
-    imgUrl:
-      "https://www.aloeveraaustralia.com.au/wp-content/uploads/2018/10/Sunland-Aloevera-Fertiliser-1-1.jpg",
-    category: "fertilizer",
-    embedding: [0.123, -0.045, 0.002, 0.056],
-    createdAt: "2025-10-16T00:00:00Z",
-    updatedAt: "2025-10-16T00:00:00Z",
-  },
-  {
-    name: "Organic Aloe Fertilizer",
-    description: "Special fertilizer mix for Aloe Vera and succulents",
-    price: 75000,
-    stock: 200,
-    imgUrl:
-      "https://www.aloeveraaustralia.com.au/wp-content/uploads/2018/10/Sunland-Aloevera-Fertiliser-1-1.jpg",
-    category: "fertilizer",
-    embedding: [0.123, -0.045, 0.002, 0.056],
-    createdAt: "2025-10-16T00:00:00Z",
-    updatedAt: "2025-10-16T00:00:00Z",
-  },
-  {
-    name: "Organic Aloe Fertilizer",
-    description: "Special fertilizer mix for Aloe Vera and succulents",
-    price: 75000,
-    stock: 200,
-    imgUrl:
-      "https://www.aloeveraaustralia.com.au/wp-content/uploads/2018/10/Sunland-Aloevera-Fertiliser-1-1.jpg",
-    category: "fertilizer",
-    embedding: [0.123, -0.045, 0.002, 0.056],
-    createdAt: "2025-10-16T00:00:00Z",
-    updatedAt: "2025-10-16T00:00:00Z",
-  },
-  {
-    name: "Organic Aloe Fertilizer",
-    description: "Special fertilizer mix for Aloe Vera and succulents",
-    price: 75000,
-    stock: 200,
-    imgUrl:
-      "https://www.aloeveraaustralia.com.au/wp-content/uploads/2018/10/Sunland-Aloevera-Fertiliser-1-1.jpg",
-    category: "fertilizer",
-    embedding: [0.123, -0.045, 0.002, 0.056],
-    createdAt: "2025-10-16T00:00:00Z",
-    updatedAt: "2025-10-16T00:00:00Z",
-  },
-];
+import ProductCard from "@/components/ProductCard";
 
 export default function ProductsPage() {
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [products, setProducts] = useState([]);
 
   useEffect(() => {
     const checkLogin = () => {
@@ -69,6 +17,17 @@ export default function ProductsPage() {
       setIsSignedIn(Boolean(authCookie));
     };
     checkLogin();
+
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch("/api/products");
+        const data = await response.json();
+        setProducts(data);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      }
+    };
+    fetchProducts();
   }, []);
 
   const handleAddToCart = () => {
@@ -87,43 +46,11 @@ export default function ProductsPage() {
         </h1>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {products.map((product, index) => (
-            <Card
+            <ProductCard
               key={index}
-              className="shadow-sm hover:shadow-md transition-shadow"
-            >
-              <CardHeader className="p-0">
-                <div className="relative w-full aspect-square">
-                  <Image
-                    src={product.imgUrl}
-                    alt={product.name}
-                    fill
-                    className="object-cover rounded-t-lg"
-                  />
-                </div>
-              </CardHeader>
-              <CardContent className="p-4">
-                <CardTitle className="text-lg font-semibold mb-2">
-                  {product.name}
-                </CardTitle>
-                <p className="text-sm text-muted-foreground mb-2">
-                  {product.description}
-                </p>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-lg font-bold text-emerald-700">
-                    Rp {product.price.toLocaleString()}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    Stock: {product.stock}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground mb-4">
-                  Category: {product.category}
-                </p>
-                <Button className="w-full" onClick={handleAddToCart}>
-                  Add to Cart
-                </Button>
-              </CardContent>
-            </Card>
+              product={product}
+              onAddToCart={handleAddToCart}
+            />
           ))}
         </div>
       </section>
