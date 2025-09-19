@@ -9,6 +9,6 @@ export async function POST(req: Request) {
 
     } catch (err) {
         console.log(err);
-        errorHandler(err)
+        return errorHandler(err)
     }
 }
