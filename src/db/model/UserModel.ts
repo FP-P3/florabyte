@@ -22,6 +22,10 @@ class UserModel {
 
         await db.collection("users").insertOne(payload)
     }
+
+    static async login(username: string){
+        return await db.collection("users").findOne({username})
+    }
 }
 
 export default UserModel

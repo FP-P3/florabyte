@@ -10,9 +10,5 @@ export async function POST(req: Request) {
     } catch (err) {
         console.log(err);
         errorHandler(err)
-        // const status = (err as Error).status || 500;
-        // const message = (err as Error).message || "Internal Server Error";
-        // return Response.json({ message }, { status });
-
     }
 }
