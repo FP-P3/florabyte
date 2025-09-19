@@ -21,7 +21,6 @@ export async function POST(request: Request) {
       process.env.JWT_SECRET as string
     )
 
-    // Set cookie tanpa maxAge
     const cookieStore = await cookies()
     cookieStore.set("Authorization", `Bearer ${access_token}`, {
       httpOnly: true,  // Tidak bisa akses via JS
@@ -29,7 +28,8 @@ export async function POST(request: Request) {
       path: "/"
     })
 
-    return Response.json({ access_token })
+    // Tambah role di response
+    return Response.json({ access_token, role: user.role })
   } catch (error) {
     return errorHandler(error)
   }
