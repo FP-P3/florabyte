@@ -1,5 +1,6 @@
 // app/page.tsx  (TANPA "use client")
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -104,8 +105,15 @@ function Hero() {
         <div className="relative">
           <Card className="relative mx-auto aspect-[4/3] w-full max-w-lg">
             <CardContent className="h-full w-full p-3">
-              <div className="h-full w-full rounded-xl bg-gradient-to-br from-emerald-100 via-white to-emerald-50 grid place-items-center">
-                <div className="text-center p-6">
+              <div className="h-full w-full rounded-xl bg-gradient-to-br from-emerald-100 via-white to-emerald-50 grid place-items-center relative overflow-hidden">
+                <Image
+                  src="/monstera.jpg"
+                  alt="Monstera plant"
+                  fill
+                  className="object-cover blur-[2px]"
+                  priority
+                />
+                <div className="relative z-10 text-center p-6 bg-white/80 rounded-lg">
                   <Camera className="mx-auto mb-3 h-8 w-8 text-emerald-700" />
                   <p className="text-sm text-muted-foreground">
                     Drop a plant photo here
