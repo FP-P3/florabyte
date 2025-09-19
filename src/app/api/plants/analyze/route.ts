@@ -49,7 +49,7 @@ Kamu adalah seorang ahli botanist, Analisis FOTO berikut dan identifikasi apakah
   ],
   "notes": ["string"],
   "altCandidates": [
-    { "scientificName": "string", "confidence": number }
+    { "commonName": "string", "confidence": number }
   ]
 }
 
@@ -115,14 +115,12 @@ export async function POST(request: Request) {
     let aiJson: PlantAnalysis;
     try {
       aiJson = JSON.parse(cleaned) as PlantAnalysis;
-      console.log(aiJson, "<- Parsed AI JSON");
     } catch {
       return new Response(
         JSON.stringify({ error: "AI returned non-JSON", raw, cleaned }),
         { status: 502 }
       );
     }
-    console.log(aiJson);
 
     const ok = !!aiJson?.isPlant && (aiJson?.confidence ?? 0) >= 0.6;
     if (!ok) {
@@ -151,7 +149,6 @@ export async function POST(request: Request) {
           .end(buffer);
       }
     );
-    console.log(cloudinaryResponse, "<- Cloudinary Response");
 
     const imageUrl = cloudinaryResponse.secure_url as string;
 
@@ -212,12 +209,11 @@ export async function POST(request: Request) {
     const productRecommendations =
       await Products.aggregate<ProductRecommendation>(pipeline).toArray();
 
-    // 6) Response final untuk scheduling/FE
     return new Response(
       JSON.stringify({
         accepted: true,
         imageUrl,
-        ai: aiJson, // sudah termasuk plantingPlan, care, schedule
+        ai: aiJson,
         productRecommendations,
       }),
       { status: 200 }

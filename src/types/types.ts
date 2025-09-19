@@ -67,3 +67,42 @@ export interface ProductDoc {
   category: string;
   embedding: number[];
 }
+
+export interface PlantData {
+  accepted: boolean;
+  imageUrl: string;
+  ai: {
+    isPlant: boolean;
+    confidence: number;
+    label: {
+      scientificName: string;
+      commonName: string;
+      genus: string;
+      family: string;
+    };
+    part: string;
+    plantingPlan: {
+      medium: string;
+      potSize: string;
+      steps: string[];
+    };
+    care: {
+      light: string;
+      water: string;
+      soil: string;
+      commonIssues: string[];
+      suppliesNeeded: string[];
+    };
+    schedule: Array<{
+      type: string;
+      intervalDays: number;
+      notes: string;
+    }>;
+    notes: string[];
+    altCandidates: Array<{
+      scientificName: string;
+      confidence: number;
+    }>;
+  };
+  productRecommendations: [];
+}
