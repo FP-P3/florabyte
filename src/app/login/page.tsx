@@ -28,9 +28,14 @@ export default function Login() {
       }
 
       const data = await res.json();
-      // Simpan token atau redirect (sesuai implementasi Anda)
       console.log("Login success:", data);
-      router.push("/dashboard"); // Ganti dengan halaman setelah login
+
+      // Redirect berdasarkan role
+      if (data.role === "admin") {
+        router.push("/cms/products");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {

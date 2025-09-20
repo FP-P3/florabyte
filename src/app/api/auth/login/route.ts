@@ -21,11 +21,15 @@ export async function POST(request: Request) {
       role: user.role,
     });
 
-    // Set cookie tanpa maxAge
     const cookieStore = await cookies();
-    cookieStore.set("Authorization", `Bearer ${access_token}`);
+    cookieStore.set("Authorization", `Bearer ${access_token}`, {
+      httpOnly: true,  // Tidak bisa akses via JS
+      secure: process.env.NODE_ENV === "production",  // Hanya HTTPS di production
+      path: "/",
+    });
 
-    return Response.json({ access_token });
+    // Tambah role di response
+    return Response.json({ access_token, role: user.role });
   } catch (error) {
     return errorHandler(error);
   }
