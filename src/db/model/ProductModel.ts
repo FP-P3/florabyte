@@ -75,6 +75,10 @@ class ProductModel {
     }
     return { message: "Product deleted successfully" }
   }
+
+  static async getByCategory(category: string) {
+    return await db.collection("Products").find({ category }).toArray();
+  }
 }
 
 export default ProductModel
