@@ -13,10 +13,12 @@ async function checkAdmin() {
   return decoded
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await checkAdmin()
-    const products = await ProductModel.getProducts()
+    const url = new URL(request.url)
+    const query = url.searchParams.get('q') || undefined  // Ambil query parameter q
+    const products = await ProductModel.getProducts(query)
     return Response.json(products)
   } catch (error) {
     return errorHandler(error)

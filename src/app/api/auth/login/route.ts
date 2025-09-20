@@ -9,7 +9,7 @@ export async function POST(request: Request) {
 
     // Validasi input dasar
     if (!username || !password) {
-      throw { message: "Username and password are required", status: 400 }
+      throw { message: "Username/password are required", status: 400 }
     }
 
     // Panggil UserModel.login (sudah handle compare password)

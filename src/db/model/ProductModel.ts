@@ -14,8 +14,17 @@ const productSchema = z.object({
 })
 
 class ProductModel {
-  static async getProducts() {
-    const products = await db.collection("Products").find({}).toArray()
+  static async getProducts(query?: string) {
+    let filter = {}
+    if (query) {
+      filter = {
+        $or: [
+          { name: { $regex: query, $options: 'i' } },  // Case-insensitive search di name
+          { category: { $regex: query, $options: 'i' } }  // Case-insensitive search di category
+        ]
+      }
+    }
+    const products = await db.collection("Products").find(filter).toArray()
     return products
   }
 
@@ -37,7 +46,7 @@ class ProductModel {
       stock: parsed.stock,
       imgUrl: parsed.imgUrl,
       category: parsed.category,
-    //   embedding: parsed.embedding,
+      // embedding: parsed.embedding,
       createdAt: now,
       updatedAt: now
     }

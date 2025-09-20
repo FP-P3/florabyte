@@ -30,9 +30,9 @@ export default function Login() {
       const data = await res.json()
       console.log("Login success:", data)
 
-      // Redirect berdasarkan role
+      // Redirect berdasarkan role (tambahkan ini jika belum ada)
       if (data.role === "admin") {
-        router.push("/cms")
+        router.push("/cms/products")
       } else {
         router.push("/dashboard")
       }
@@ -80,7 +80,6 @@ export default function Login() {
                 placeholder="yourusername"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                required
                 className="w-full h-12 md:h-14 px-3 md:px-4 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500 focus:ring-opacity-20 transition-colors"
               />
             </div>
@@ -95,7 +94,6 @@ export default function Login() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
                 className="w-full h-12 md:h-14 px-3 md:px-4 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500 focus:ring-opacity-20 transition-colors"
               />
             </div>
