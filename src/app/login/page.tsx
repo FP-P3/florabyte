@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 export default function Login() {
   const router = useRouter();
@@ -28,11 +29,16 @@ export default function Login() {
       }
 
       const data = await res.json();
-      // Simpan token atau redirect (sesuai implementasi Anda)
       console.log("Login success:", data);
-      router.push("/dashboard"); // Ganti dengan halaman setelah login
-    } catch (err: any) {
-      setError(err.message);
+
+      // Redirect berdasarkan role
+      if (data.role === "admin") {
+        router.push("/cms/products");
+      } else {
+        router.push("/plants");
+      }
+    } catch (err) {
+      toast.error((err as Error).message);
     } finally {
       setLoading(false);
     }

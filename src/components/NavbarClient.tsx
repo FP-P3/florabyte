@@ -168,7 +168,7 @@ export default function NavbarClient({ isSignedIn }: Props) {
                   className="w-full"
                   onClick={() => setOpen(false)}
                 >
-                  <Link href="/register">Get started</Link>
+                  <Link href="/login">Get started</Link>
                 </Button>
               )}
             </div>
