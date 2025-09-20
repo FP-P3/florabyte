@@ -13,31 +13,34 @@ async function checkAdmin() {
   return decoded
 }
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await checkAdmin()
-    const product = await ProductModel.getProductById(params.id)
+    const { id } = await params
+    const product = await ProductModel.getProductById(id)
     return Response.json(product)
   } catch (error) {
     return errorHandler(error)
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await checkAdmin()
+    const { id } = await params
     const body = await request.json()
-    const result = await ProductModel.updateProduct(params.id, body)
+    const result = await ProductModel.updateProduct(id, body)
     return Response.json(result)
   } catch (error) {
     return errorHandler(error)
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {  // Update tipe params ke Promise
   try {
     await checkAdmin()
-    const result = await ProductModel.deleteProduct(params.id)
+    const { id } = await params  // Await params sebelum pakai
+    const result = await ProductModel.deleteProduct(id)  // Pakai id yang sudah awaited
     return Response.json(result)
   } catch (error) {
     return errorHandler(error)

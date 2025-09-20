@@ -9,6 +9,6 @@ export type ProductType = {
   imgUrl: string;
   category: string;
   embedding: number[];
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 };
