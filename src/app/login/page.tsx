@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 export default function Login() {
   const router = useRouter();
@@ -34,10 +35,10 @@ export default function Login() {
       if (data.role === "admin") {
         router.push("/cms/products");
       } else {
-        router.push("/dashboard");
+        router.push("/plants");
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      toast.error((err as Error).message);
     } finally {
       setLoading(false);
     }
