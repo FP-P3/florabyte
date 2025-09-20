@@ -39,7 +39,10 @@ export default function PlantScannerPage() {
   const [scanProgress, setScanProgress] = useState(0);
   const [plantData, setPlantData] = useState<PlantData | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{
+    title: string;
+    notes?: string[];
+  } | null>(null);
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
@@ -79,7 +82,7 @@ export default function PlantScannerPage() {
     const interval = setInterval(() => {
       progress = Math.min(95, progress + Math.random() * 12);
       setScanProgress(progress);
-    }, 2500);
+    }, 1000);
 
     try {
       const formData = new FormData();
@@ -91,8 +94,23 @@ export default function PlantScannerPage() {
       });
 
       if (!res.ok) {
-        const msg = await res.text().catch(() => "");
-        throw new Error(msg || `Request failed with status ${res.status}`);
+        const raw = await res.text().catch(() => "");
+        // Try to show only reason and notes when API returns accepted:false
+        try {
+          const j = JSON.parse(raw);
+          if (j?.accepted === false) {
+            setError({
+              title: j?.reason || "Analisis gagal",
+              notes: Array.isArray(j?.ai?.notes) ? j.ai.notes : [],
+            });
+            setScanProgress(0);
+            setScanState("preview");
+            return;
+          }
+        } catch {
+          // fallthrough to generic error
+        }
+        throw new Error(raw || `Request failed with status ${res.status}`);
       }
 
       const data: PlantData = await res.json();
@@ -100,7 +118,9 @@ export default function PlantScannerPage() {
       setScanProgress(100);
       setScanState("results");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to analyze the plant.");
+      setError({
+        title: e instanceof Error ? e.message : "Failed to analyze the plant.",
+      });
       setScanProgress(0);
       setScanState("preview");
     } finally {
@@ -108,7 +128,22 @@ export default function PlantScannerPage() {
     }
   };
 
-  const resetScanner = () => {
+  const resetScanner = async () => {
+    await fetch("/api/plants/analyze", {
+      method: "DELETE",
+      body: JSON.stringify({ url: plantData?.imageUrl }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    setScanState("upload");
+    setSelectedFile(null);
+    setPreviewUrl("");
+    setScanProgress(0);
+    setPlantData(null);
+    setError(null);
+  };
+
+  const retakeScanner = () => {
     setScanState("upload");
     setSelectedFile(null);
     setPreviewUrl("");
@@ -253,10 +288,20 @@ export default function PlantScannerPage() {
     return (
       <div className="min-h-screen bg-background p-4">
         <div className="mx-auto max-w-md">
-          {/* Show error if API call failed */}
           {error && (
             <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>
+                <div className="space-y-2">
+                  <p className="font-medium">{error.title}</p>
+                  {error.notes?.length ? (
+                    <ul className="list-disc pl-5 text-sm">
+                      {error.notes.map((n, i) => (
+                        <li key={i}>{n}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              </AlertDescription>
             </Alert>
           )}
 
@@ -285,7 +330,7 @@ export default function PlantScannerPage() {
           </Card>
 
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={resetScanner}>
+            <Button variant="outline" onClick={retakeScanner}>
               Retake
             </Button>
             <Button onClick={startScanning}>
