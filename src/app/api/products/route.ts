@@ -3,7 +3,7 @@ import errorHandler from "@/helpers/errorHandler";
 
 export async function GET() {
   try {
-    const products = await ProductModel.getAll();
+    const products = await ProductModel.getProducts();
     return new Response(JSON.stringify(products), { status: 200 });
   } catch (err) {
     return errorHandler(err);

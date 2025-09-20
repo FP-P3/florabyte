@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   const category = url.searchParams.get("category");
 
   if (!category) {
-    const products = await ProductModel.getAll();
+    const products = await ProductModel.getProducts();
     return new Response(JSON.stringify(products), { status: 200 });
   }
 
