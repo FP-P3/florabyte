@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
       "www.static-src.com",
       "down-id.img.susercontent.com",
       "id-live-01.slatic.net",
-
+    ],
     remotePatterns: [
       {
         protocol: "https",
@@ -34,7 +34,6 @@ const nextConfig: NextConfig = {
         hostname: "www.aloeveraaustralia.com.au",
         pathname: "/**",
       },
-
     ],
   },
 };
