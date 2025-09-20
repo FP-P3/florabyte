@@ -14,3 +14,17 @@ export async function POST(request: Request) {
     return errorHandler(err);
   }
 }
+
+export async function GET(request: Request) {
+  try {
+    const userId = request.headers.get("x-user-id");
+    if (!userId) {
+      throw { message: "Unauthorized", status: 401 };
+    }
+
+    const cart = await CartModel.getPendingWithProducts(userId);
+    return Response.json(cart);
+  } catch (err) {
+    return errorHandler(err);
+  }
+}

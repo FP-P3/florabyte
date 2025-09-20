@@ -61,6 +61,64 @@ class CartModel {
       total: newTotal,
     };
   }
+  static async getPendingWithProducts(userId: string) {
+    // --- Ambil cart 'pending' ---
+    const cart = await db.collection("cart").findOne({
+      userId: new ObjectId(userId),
+      status: "pending",
+    });
+
+    // Kalau belum ada cart, balikin kosong
+    if (!cart) {
+      return { items: [], total: 0 };
+    }
+
+    // --- Hitung qty per produk dari duplikasi productIds ---
+    // contoh: [A, A, B] => { A: 2, B: 1 }
+    const qtyById: Record<string, number> = {};
+    for (const oid of cart.productIds || []) {
+      const key = oid.toString();
+      qtyById[key] = (qtyById[key] || 0) + 1;
+    }
+
+    // --- Ambil data produk unik yang ada di cart ---
+    const uniqueIds: ObjectId[] = [];
+    for (const idStr in qtyById) {
+      uniqueIds.push(new ObjectId(idStr));
+    }
+
+    const products = await db
+      .collection("Products")
+      .find({ _id: { $in: uniqueIds } })
+      .project({ name: 1, price: 1, imgUrl: 1 })
+      .toArray();
+
+    // --- Bentuk items untuk UI ---
+    // items: [{ productId, name, price, imgUrl, qty }]
+    const items: Array<{
+      productId: string;
+      name: string;
+      price: number;
+      imgUrl: string;
+      qty: number;
+    }> = [];
+
+    for (const prod of products) {
+      const idStr = prod._id.toString();
+      items.push({
+        productId: idStr,
+        name: (prod as any).name || "Unknown",
+        price: Number((prod as any).price) || 0,
+        imgUrl: (prod as any).imgUrl || "",
+        qty: qtyById[idStr] || 0,
+      });
+    }
+
+    return {
+      items, // siap dirender
+      total: Number(cart.total) || 0, // total dari dokumen cart
+    };
+  }
 }
 
 export default CartModel;
