@@ -5,5 +5,5 @@ import { redirect } from "next/navigation";
 export const handleLogout = async () => {
   const cookieStore = await cookies();
   cookieStore.delete("Authorization");
-  redirect("/");
+  redirect("/login");
 };
