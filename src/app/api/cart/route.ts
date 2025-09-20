@@ -21,8 +21,9 @@ export async function GET(request: Request) {
     if (!userId) {
       throw { message: "Unauthorized", status: 401 };
     }
-    const wishlists = await CartModel.getByUserIdWithProducts(userId);
-    return Response.json(wishlists);
+
+    const cart = await CartModel.getPendingWithProducts(userId);
+    return Response.json(cart);
   } catch (err) {
     return errorHandler(err);
   }
