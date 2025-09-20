@@ -7,7 +7,7 @@ import ProductCard from "@/components/ProductCard";
 export default function ProductsPage() {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [products, setProducts] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(""); // Tambah state untuk kategori
+  const [selectedCategory, setSelectedCategory] = useState("");
 
   useEffect(() => {
     const checkLogin = () => {
@@ -19,8 +19,8 @@ export default function ProductsPage() {
     };
     checkLogin();
 
-    fetchProducts(selectedCategory); // Panggil fetch dengan kategori
-  }, [selectedCategory]); // Jalankan ulang saat kategori berubah
+    fetchProducts(selectedCategory);
+  }, [selectedCategory]);
 
   const fetchProducts = async (category = "") => {
     try {
@@ -35,15 +35,34 @@ export default function ProductsPage() {
     }
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async (productId: string) => {
     if (!isSignedIn) {
       toast.error("Please log in to add items to your cart.");
-    } else {
-      toast.success("Item added to cart!");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/cart", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ productId }),
+      });
+
+      if (response.ok) {
+        toast.success("Product added to cart!");
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || "Failed to add to cart.");
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast.error("Something went wrong. Try again.");
     }
   };
 
-  const categories = ["All", "soil", "fertilizer", "pesticide", "tools"]; // Array kategori
+  const categories = ["All", "soil", "fertilizer", "pesticide", "tools"];
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-white via-emerald-50/40 to-white text-foreground">
@@ -51,7 +70,6 @@ export default function ProductsPage() {
         <h1 className="text-3xl md:text-4xl font-bold text-center mb-8">
           Our Products
         </h1>
-        {/* Tambah badge kategori di sini */}
         <div className="flex justify-center gap-2 mb-6">
           {categories.map((cat) => (
             <button

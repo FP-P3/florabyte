@@ -6,7 +6,7 @@ import { ProductType } from "@/types/productType";
 
 interface ProductCardProps {
   product: ProductType;
-  onAddToCart: () => void;
+  onAddToCart: (productId: string) => void; // Tambah productId sebagai param
 }
 
 export default function ProductCard({
@@ -43,7 +43,10 @@ export default function ProductCard({
         <p className="text-xs text-muted-foreground mb-4">
           Category: {product.category}
         </p>
-        <Button className="w-full" onClick={onAddToCart}>
+        <Button
+          className="w-full"
+          onClick={() => onAddToCart(product._id.toString())}
+        >
           Add to Cart
         </Button>
       </CardContent>
