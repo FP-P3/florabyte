@@ -227,3 +227,27 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export async function DELETE(req: Request) {
+  const { url } = (await req.json()) as { url: string };
+  if (!url) {
+    return new Response(JSON.stringify({ error: "No URL provided" }), {
+      status: 400,
+    });
+  }
+  const regex = /upload\/(?:v\d+\/)?(.+)\.[a-z]+$/;
+  const match = url.match(regex);
+  if (!match) throw new Error("Could not parse public_id from URL");
+  const publicId = match[1]; // e.g. "plants/d8koco99zagffzvw347l"
+
+  try {
+    const res = await cloudinary.uploader.destroy(publicId, {
+      resource_type: "image", // or "video" / "raw"
+    });
+    console.log("Deleted:", res);
+    return res;
+  } catch (err) {
+    console.error("Cloudinary delete error:", err);
+    throw err;
+  }
+}

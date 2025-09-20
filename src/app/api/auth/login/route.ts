@@ -1,4 +1,4 @@
-import errorHandler from "@/app/helpers/errorHandler";
+import errorHandler from "@/helpers/errorHandler";
 import { signToken } from "@/db/helpers/jwt";
 import UserModel from "@/db/model/UserModel";
 import { cookies } from "next/headers";

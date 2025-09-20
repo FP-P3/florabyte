@@ -8,7 +8,8 @@ export class PlantModel {
     plantingPlan: object,
     care: object,
     schedule: [],
-    notes: []
+    notes: [],
+    userId: string | null
   ) {
     const payload = {
       label,
@@ -18,6 +19,7 @@ export class PlantModel {
       care,
       schedule,
       notes,
+      userId,
     };
     return await db.collection("Plants").insertOne(payload);
   }
