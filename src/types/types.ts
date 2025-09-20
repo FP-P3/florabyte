@@ -106,3 +106,27 @@ export interface PlantData {
   };
   productRecommendations: [];
 }
+
+// Document shape returned by /api/plants
+export interface PlantDoc {
+  _id: string; // mongodb stringified id (middleware sets headers)
+  label: {
+    scientificName: string | null;
+    commonName: string | null;
+    genus: string | null;
+    family: string | null;
+  };
+  imageUrl: string;
+  part: string;
+  plantingPlan: PlantingPlan | EmptyObj;
+  care: Care | EmptyObj;
+  schedule: Array<{
+    type: string;
+    intervalDays: number;
+    notes: string;
+  }>;
+  notes: string[];
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+}

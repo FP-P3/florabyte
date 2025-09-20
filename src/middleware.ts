@@ -31,7 +31,6 @@ export async function middleware(request: NextRequest) {
         throw { message: "Invalid token", status: 401 };
 
       const decodedToken = verifyToken(token) as { id: string; role: string };
-      console.log(decodedToken, "decodedToken middleware");
 
       const requestHeaders = new Headers(request.headers);
       requestHeaders.set("x-user-id", decodedToken.id as string);

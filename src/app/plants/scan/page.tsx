@@ -203,7 +203,7 @@ export default function PlantScannerPage() {
         const msg = await res.text().catch(() => "");
         throw new Error(msg || `Request failed with status ${res.status}`);
       }
-      window.location.href = "/plants/my-plants";
+      window.location.href = "/plants";
     } catch (err) {
       console.log(err);
     }
