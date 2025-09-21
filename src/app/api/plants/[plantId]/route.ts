@@ -1,4 +1,4 @@
-import { PlantModel } from "@/db/models/plantModel";
+import { PlantModel } from "@/db/model/plantModel";
 import errorHandler from "@/helpers/errorHandler";
 
 export async function GET(
