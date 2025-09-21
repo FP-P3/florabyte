@@ -8,7 +8,7 @@ export type ProductType = {
   stock: number
   imgUrl: string
   category: string
-//   embedding?: number[]
+  embedding?: number[]
   createdAt?: Date
   updatedAt?: Date
 }

@@ -1,4 +1,4 @@
-import errorHandler from "@/app/helpers/errorHandler"
+import errorHandler from "@/helpers/errorHandler"
 import ProductModel from "@/db/model/ProductModel"
 import { verify } from "jsonwebtoken"
 import { cookies } from "next/headers"
