@@ -11,6 +11,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 
 interface CartItem {
   productId: string;
@@ -28,6 +30,7 @@ interface CartData {
 export default function CartPage() {
   const [cart, setCart] = useState<CartData>({ items: [], total: 0 });
   const [loading, setLoading] = useState(true);
+  const [errorType, setErrorType] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCart();
@@ -39,6 +42,8 @@ export default function CartPage() {
       if (response.ok) {
         const data: CartData = await response.json();
         setCart(data);
+      } else if (response.status === 401) {
+        setErrorType("unauthorized");
       } else {
         console.error("Failed to fetch cart");
       }
@@ -110,12 +115,59 @@ export default function CartPage() {
     );
   }
 
+  if (errorType === "unauthorized") {
+    return (
+      <main className="min-h-screen bg-gradient-to-b from-white via-emerald-50/40 to-white text-foreground">
+        <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[60vh]">
+          <Card className="w-full max-w-md shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-center text-2xl">Your Cart</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+              <p className="text-lg mb-6">
+                Anda belum memiliki barang untuk di checkout, silahkan login dan
+                telusuri produk kami.
+              </p>
+              <div className="flex gap-4 justify-center">
+                <Link href="/login">
+                  <Button>Login</Button>
+                </Link>
+                <Link href="/products">
+                  <Button variant="outline">Telusuri Produk</Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-white via-emerald-50/40 to-white text-foreground">
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">Your Cart</h1>
         {cart.items.length === 0 ? (
-          <p>Your cart is empty.</p>
+          <div className="flex justify-center items-center min-h-[60vh]">
+            <Card className="w-full max-w-md shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-center text-2xl">
+                  Your Cart
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-lg mb-6">
+                  Anda belum memiliki produk untuk di checkout, silahkan
+                  telusuri produk kami.
+                </p>
+                <div className="flex justify-center">
+                  <Link href="/products">
+                    <Button variant="outline">Telusuri Produk</Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         ) : (
           <>
             <Table>
