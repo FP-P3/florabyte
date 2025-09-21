@@ -1,4 +1,4 @@
-import { PlantModel } from "@/db/model/plantModel";
+import { PlantModel } from "@/db/models/plantModel";
 
 export async function POST(req: Request) {
   try {

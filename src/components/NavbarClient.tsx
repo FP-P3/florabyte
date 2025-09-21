@@ -14,8 +14,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Leaf, Menu, LogOut } from "lucide-react";
 import { useFormStatus } from "react-dom";
+// ⬇️ GANTI path ini sesuai lokasi file action.ts kamu
 import { handleLogout } from "@/action";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type Props = { isSignedIn: boolean };
 
@@ -159,24 +159,16 @@ export default function NavbarClient({ isSignedIn }: Props) {
               <Separator className="my-2" />
 
               {isSignedIn ? (
-                <Link
-                  href="/profile"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 rounded-md p-2 hover:bg-accent"
-                >
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src="" alt="Profile picture" />
-                    <AvatarFallback>U</AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium">Profile</span>
-                </Link>
+                <form action={handleLogout} onSubmit={() => setOpen(false)}>
+                  <LogoutButton />
+                </form>
               ) : (
                 <Button
                   asChild
                   className="w-full"
                   onClick={() => setOpen(false)}
                 >
-                  <Link href="/login">Get started</Link>
+                  <Link href="/register">Get started</Link>
                 </Button>
               )}
             </div>
