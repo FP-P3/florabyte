@@ -83,6 +83,23 @@ export default function CartPage() {
     }
   };
 
+  const handleRemoveItem = async (productId: string) => {
+    try {
+      const response = await fetch("/api/cart", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId }),
+      });
+      if (response.ok) {
+        fetchCart(); // Refresh cart
+      } else {
+        console.error("Failed to remove item");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
   if (loading) {
     return (
       <main className="min-h-screen bg-gradient-to-b from-white via-emerald-50/40 to-white text-foreground">
@@ -150,7 +167,11 @@ export default function CartPage() {
                       Rp {(item.price * item.qty).toLocaleString()}
                     </TableCell>
                     <TableCell>
-                      <Button variant="destructive" size="sm">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleRemoveItem(item.productId)}
+                      >
                         Remove
                       </Button>
                     </TableCell>
