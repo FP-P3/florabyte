@@ -119,6 +119,103 @@ class CartModel {
       total: Number(cart.total) || 0, // total dari dokumen cart
     };
   }
+  static async updateQty(
+    userId: string,
+    productId: string,
+    action: "increase" | "decrease"
+  ) {
+    const userObjectId = new ObjectId(userId);
+    const productObjectId = new ObjectId(productId);
+
+    // Ambil produk untuk harga
+    const product = await db
+      .collection("Products")
+      .findOne({ _id: productObjectId }, { projection: { price: 1 } });
+    const price = Number((product as any).price) || 0;
+
+    // Ambil cart pending
+    const cart = await db.collection("cart").findOne({
+      userId: userObjectId,
+      status: "pending",
+    });
+    if (!cart) {
+      throw new Error("Cart tidak ditemukan");
+    }
+
+    if (action === "increase") {
+      // Push productId dan inc total
+      await db.collection("cart").updateOne({ _id: cart._id }, {
+        $push: { productIds: productObjectId },
+        $inc: { total: price },
+      } as any);
+    } else if (action === "decrease") {
+      // Pull satu instance dan dec total
+      const productIds = cart.productIds || [];
+      const index = productIds.findIndex(
+        (id: ObjectId) => id.toString() === productId
+      );
+      if (index === -1) {
+        throw new Error("Produk tidak ada di cart");
+      }
+      productIds.splice(index, 1); // Remove satu instance
+
+      if (productIds.length === 0) {
+        // Jika kosong, hapus cart
+        await db.collection("cart").deleteOne({ _id: cart._id });
+      } else {
+        await db.collection("cart").updateOne({ _id: cart._id }, {
+          $set: { productIds },
+          $inc: { total: -price },
+        } as any);
+      }
+    }
+  }
+  static async removeItem(userId: string, productId: string) {
+    const userObjectId = new ObjectId(userId);
+    const productObjectId = new ObjectId(productId);
+
+    // Ambil produk untuk harga
+    const product = await db
+      .collection("Products")
+      .findOne({ _id: productObjectId }, { projection: { price: 1 } });
+    if (!product) {
+      throw new Error("Produk tidak ditemukan");
+    }
+    const price = Number((product as any).price) || 0;
+
+    // Ambil cart pending
+    const cart = await db.collection("cart").findOne({
+      userId: userObjectId,
+      status: "pending",
+    });
+    if (!cart) {
+      throw new Error("Cart tidak ditemukan");
+    }
+
+    // Hitung qty produk ini di cart
+    const productIds = cart.productIds || [];
+    const qty = productIds.filter(
+      (id: ObjectId) => id.toString() === productId
+    ).length;
+    if (qty === 0) {
+      throw new Error("Produk tidak ada di cart");
+    }
+
+    // Pull semua instance produk ini
+    const newProductIds = productIds.filter(
+      (id: ObjectId) => id.toString() !== productId
+    );
+
+    if (newProductIds.length === 0) {
+      // Jika kosong, hapus cart
+      await db.collection("cart").deleteOne({ _id: cart._id });
+    } else {
+      await db.collection("cart").updateOne({ _id: cart._id }, {
+        $set: { productIds: newProductIds },
+        $inc: { total: -(price * qty) },
+      } as any);
+    }
+  }
 }
 
 export default CartModel;
