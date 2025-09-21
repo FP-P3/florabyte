@@ -22,6 +22,10 @@ const nextConfig: NextConfig = {
       "www.static-src.com",
       "down-id.img.susercontent.com",
       "id-live-01.slatic.net",
+      "lh3.googleusercontent.com",
+      "lh4.googleusercontent.com",
+      "lh5.googleusercontent.com",
+      "lh6.googleusercontent.com",
     ],
     remotePatterns: [
       {
@@ -32,6 +36,11 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "www.aloeveraaustralia.com.au",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "*.googleusercontent.com",
         pathname: "/**",
       },
     ],

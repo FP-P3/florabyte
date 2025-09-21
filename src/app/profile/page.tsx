@@ -212,27 +212,27 @@ export default function Profile() {
 
   const handleLogout = async () => {
     try {
-      // First, sign out from NextAuth if there's a session
-      if (session) {
-        console.log("Signing out from NextAuth...");
-        await signOut({ redirect: false });
-      }
+      // 1) Clear custom auth cookie on server (httpOnly)
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
 
-      // Clear custom auth cookie
-      console.log("Clearing custom auth cookie...");
-      document.cookie =
-        "Authorization=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      // 2) Sign out NextAuth session if present (safe to call regardless)
+      await signOut({ redirect: false });
 
-      // Clear any other potential auth-related items from localStorage/sessionStorage
-      localStorage.clear();
-      sessionStorage.clear();
+      // 3) Clear client-side storage
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch {}
 
-      console.log("All sessions destroyed, redirecting to login...");
-      window.location.href = "/login";
+      // 4) Redirect to login
+      window.location.assign("/login");
     } catch (error) {
       console.error("Error during logout:", error);
       // Force redirect even if there's an error
-      window.location.href = "/login";
+      window.location.assign("/login");
     }
   };
 
