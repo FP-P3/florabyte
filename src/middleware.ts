@@ -14,6 +14,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (request.nextUrl.pathname === "/profile") {
+    if (!auth) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  if (request.nextUrl.pathname.startsWith("/plants")) {
+    if (!auth) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return NextResponse.next();
+  }
+
   if (request.nextUrl.pathname.startsWith("/plants")) {
     if (!auth) {
       return NextResponse.redirect(new URL("/login", request.url));
@@ -77,6 +91,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/plants/:path*", "/plants/:path*", "/login", "/api/cart"],
+  matcher: ["/api/plants/:path*", "/plants/:path*", "/login", "/api/cart", "/profile"], // Tambahkan /profile
   runtime: "nodejs",
 };
