@@ -28,3 +28,20 @@ export async function GET(request: Request) {
     return errorHandler(err);
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const { productId, action } = await request.json();
+    const userId = request.headers.get("x-user-id");
+    if (!userId) {
+      throw { message: "Unauthorized", status: 401 };
+    }
+    if (!["increase", "decrease"].includes(action)) {
+      throw { message: "Invalid action", status: 400 };
+    }
+    await CartModel.updateQty(userId, productId, action);
+    return Response.json({ message: "Qty updated" });
+  } catch (err) {
+    return errorHandler(err);
+  }
+}

@@ -49,6 +49,40 @@ export default function CartPage() {
     }
   };
 
+  const handleIncreaseQty = async (productId: string) => {
+    try {
+      const response = await fetch("/api/cart", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId, action: "increase" }),
+      });
+      if (response.ok) {
+        fetchCart(); // Refresh cart
+      } else {
+        console.error("Failed to increase qty");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  const handleDecreaseQty = async (productId: string) => {
+    try {
+      const response = await fetch("/api/cart", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId, action: "decrease" }),
+      });
+      if (response.ok) {
+        fetchCart(); // Refresh cart
+      } else {
+        console.error("Failed to decrease qty");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
   if (loading) {
     return (
       <main className="min-h-screen bg-gradient-to-b from-white via-emerald-50/40 to-white text-foreground">
@@ -92,7 +126,26 @@ export default function CartPage() {
                     </TableCell>
                     <TableCell>{item.name}</TableCell>
                     <TableCell>Rp {item.price.toLocaleString()}</TableCell>
-                    <TableCell>{item.qty}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDecreaseQty(item.productId)}
+                          disabled={item.qty <= 1} // Disable jika qty=1
+                        >
+                          -
+                        </Button>
+                        <span>{item.qty}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleIncreaseQty(item.productId)}
+                        >
+                          +
+                        </Button>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       Rp {(item.price * item.qty).toLocaleString()}
                     </TableCell>
