@@ -68,7 +68,7 @@ export default function NavbarClient({ isSignedIn }: Props) {
 
   const authedExtra = isSignedIn
     ? [
-        { href: "/plants/dashboard", label: "Dashboard" },
+        { href: "/plants", label: "Dashboard" },
         { href: "/plants/scan", label: "Scan" },
         { href: "/profile", label: "Profile" },
       ]
