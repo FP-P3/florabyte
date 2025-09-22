@@ -18,9 +18,8 @@ const MODEL_EMBED = "text-embedding-004";
 const PRODUCTS_COLL = "Products";
 const VECTOR_INDEX = "products_vector_index";
 
-const ONE_PROMPT = `
-TUGAS:
-Kamu adalah seorang ahli botanist, Analisis FOTO berikut dan identifikasi apakah mengandung TANAMAN. Jika ya, tebak spesiesnya dan keluarkan rencana singkat penanaman & perawatan. Balas HANYA JSON VALID (tanpa teks lain, tanpa markdown, tanpa backticks) dgn skema:
+const ONE_PROMPT = `TASK:
+You are a botanist expert. Analyze the following PHOTO and identify whether it contains a PLANT. If yes, guess its species and provide a short planting & care plan. Reply with ONLY VALID JSON (no extra text, no markdown, no backticks) using the following schema:
 
 {
   "isPlant": boolean,
@@ -59,25 +58,24 @@ Kamu adalah seorang ahli botanist, Analisis FOTO berikut dan identifikasi apakah
   }
 }
 
-ATURAN KEPUTUSAN:
-- Jika bukan tanaman ATAU confidence < 0.6:
+DECISION RULES:
+- If it is NOT a plant OR confidence < 0.6:
   - "isPlant": false
   - "confidence" <= 0.6
-  - semua field "label" = null, "part"="unknown", "plantingPlan"={}, "care"={}, "schedule"=[], "altCandidates":[], "productRecommendations": { "vectorSearch": { "query": "", "keywords": [] } }
-- Jika tanaman:
-  - isi label sesuai tingkat kepastian (boleh berhenti di genus/family)
-  - "suppliesNeeded" harus spesifik (contoh: "organic fertilizer","well-draining potting mix","perlite","moss pole","moisture meter","pruning shears")
-  - "productRecommendations.vectorSearch.query" = kalimat ringkas max 200 karakter untuk embedding pencarian produk. Gabungkan kebutuhan perawatan: pupuk, media, alat, insektisida, dll.
-  - "productRecommendations.vectorSearch.keywords" = array kata/frasa (6–12 item) terkait produk nyata: misalnya "pupuk NPK", "media tanam cocopeat", "sekop taman", "sprayer", "fungisida organik", "polybag 30cm", dll.
+  - all "label" fields = null, "part"="unknown", "plantingPlan"={}, "care"={}, "schedule"=[], "altCandidates":[], "productRecommendations": { "vectorSearch": { "query": "", "keywords": [] } }
+- If it IS a plant:
+  - fill in label according to certainty level (can stop at genus/family if unsure)
+  - "suppliesNeeded" must be specific (e.g., "organic fertilizer","well-draining potting mix","perlite","moss pole","moisture meter","pruning shears")
+  - "productRecommendations.vectorSearch.query" = a short sentence (max 200 characters) for embedding-based product search. Combine care needs: fertilizers, media, tools, pesticides, etc.
+  - "productRecommendations.vectorSearch.keywords" = array of 6–12 relevant product terms/phrases, e.g., "NPK fertilizer", "cocopeat soil mix", "garden trowel", "sprayer", "organic fungicide", "30cm polybag", etc.
 
-PANDUAN:
-- Gunakan hanya petunjuk visual pada gambar.
-- Bedakan tanaman asli vs tiruan/ilustrasi.
-- Jika banyak objek, fokus ke tanaman paling dominan.
-- Bahasa Indonesia, singkat & praktis.
+GUIDELINES:
+- Use only visual cues from the image.
+- Differentiate between real plants and artificial/illustrations.
+- If multiple objects exist, focus on the most dominant plant.
+- Respond in English, concise and practical.
 
-OUTPUT: JSON valid sesuai skema di atas, tanpa teks tambahan apa pun.
-
+OUTPUT: Valid JSON according to the schema above, with no additional text.
 `;
 
 // sanitizer: strip markdown fences and fallback to first {...}
