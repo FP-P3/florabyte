@@ -1,14 +1,18 @@
 "use client";
 import { useSession, signIn, signOut } from "next-auth/react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 
 interface User {
   _id: string;
   name: string;
   username: string;
-  email?: string;
-  googleId?: string;
-  googleEmail?: string;
+  email?: string | null;
+  role?: string | null;
+  googleId?: string | null;
+  googleEmail?: string | null;
+  profilePicture?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 export default function Profile() {
@@ -20,191 +24,101 @@ export default function Profile() {
   const [unbindingGoogle, setUnbindingGoogle] = useState(false);
 
   useEffect(() => {
-    // Check login via auth custom
-    fetch("/api/auth/me", { credentials: "include" })
+    fetch("/api/auth/me", { credentials: "include", cache: "no-store" })
       .then((res) => {
-        console.log("ME Response status:", res.status);
-        if (res.ok) {
-          return res.json();
-        } else {
-          throw new Error("Not logged in");
-        }
+        if (res.ok) return res.json();
+        throw new Error("Not logged in");
       })
       .then((data) => {
-        console.log("User data:", data);
+        console.log("/api/auth/me profilePicture:", data.profilePicture);
         setIsLoggedIn(true);
         setUser(data);
       })
       .catch((err) => {
-        console.error("Error fetching user:", err);
+        console.warn("Failed loading /api/auth/me", err);
         setIsLoggedIn(false);
       })
-      .finally(() => {
-        setLoading(false);
-      });
+      .finally(() => setLoading(false));
   }, []);
 
-  // Handle Google OAuth callback for binding
   const handleGoogleBinding = useCallback(
-    async (googleUser: {
-      id?: string | null;
-      sub?: string;
-      email?: string | null;
-      image?: string | null;
-    }) => {
+    async (googleUser: { id?: string | null; sub?: string; email?: string | null; image?: string | null }) => {
       try {
         setBindingGoogle(true);
-
-        // Debug: Log the Google user data
-        console.log("Google user data received:", googleUser);
-        console.log("Full session data:", session);
-
-        // Extract Google ID - try different possible fields
-        const sessionUser = session?.user as {
-          id?: string;
-          email?: string;
-          image?: string;
-        };
-
-        // Try multiple ways to get Google ID
-        let googleId = googleUser.id || googleUser.sub || sessionUser?.id;
-
-        // If still no Google ID, try to get it from session account
-        if (!googleId && session) {
-          console.log("Trying to get Google ID from session...");
-          // Sometimes Google ID is in different places in the session
-          const sessionData = session as {
-            token?: { sub?: string };
-            account?: { providerAccountId?: string };
-          };
-          googleId =
-            sessionData?.token?.sub || sessionData?.account?.providerAccountId;
-        }
+        const sessionUser = session?.user as { id?: string; email?: string; image?: string };
+        let googleId =
+          googleUser.id ||
+          googleUser.sub ||
+          sessionUser?.id ||
+          (session as any)?.token?.sub ||
+          (session as any)?.account?.providerAccountId;
 
         const googleEmail = googleUser.email || sessionUser?.email;
         const profilePicture = googleUser.image || sessionUser?.image;
 
-        console.log("Extracted data:", {
-          googleId,
-          googleEmail,
-          profilePicture,
-        });
-
-        // If we still don't have the required data, try alternative approach
         if (!googleId || !googleEmail) {
-          console.warn(
-            "Missing Google data, will try to use session user data directly"
-          );
-
-          // Last resort: use session user data as-is
-          const finalGoogleId = googleId || "temp_" + Date.now(); // Temporary ID if none found
-          const finalGoogleEmail = googleEmail;
-
-          if (!finalGoogleEmail) {
-            console.error("Still missing Google email:", {
-              finalGoogleId,
-              finalGoogleEmail,
-            });
-            alert(
-              "Failed to get Google account information. Please try again."
-            );
+          googleId = googleId || "temp_" + Date.now();
+          if (!googleEmail) {
+            alert("Tidak bisa mendapatkan email Google.");
             await signOut({ redirect: false });
             return;
           }
-
-          googleId = finalGoogleId;
         }
 
         const response = await fetch("/api/auth/bind-google", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({
-            googleId: googleId,
-            googleEmail: googleEmail,
-            profilePicture: profilePicture,
-          }),
+          body: JSON.stringify({ googleId, googleEmail, profilePicture }),
         });
 
         const result = await response.json();
-
         if (response.ok) {
-          console.log("Google account successfully bound:", result);
           setUser(result.user);
-          // Sign out from NextAuth after successful binding
           await signOut({ redirect: false });
-          alert("Google account successfully linked to your profile!");
+          alert("Berhasil menghubungkan akun Google!");
         } else {
-          console.error("Error binding Google account:", result.error);
-          alert(`Error: ${result.error}`);
+          alert(result.error || "Gagal menghubungkan");
           await signOut({ redirect: false });
         }
-      } catch (error) {
-        console.error("Error during Google binding:", error);
-        alert("An error occurred while linking your Google account");
+      } catch {
+        alert("Terjadi kesalahan binding");
         await signOut({ redirect: false });
       } finally {
         setBindingGoogle(false);
       }
     },
     [session]
-  ); // useCallback dependency
+  );
 
   useEffect(() => {
-    if (session?.user && isLoggedIn && !user?.googleId) {
-      handleGoogleBinding(session.user);
+    if (session?.user && isLoggedIn && user && !user.googleId) {
+      handleGoogleBinding(session.user as any);
     }
-  }, [session, isLoggedIn, user?.googleId, handleGoogleBinding]); // Fixed dependency
+  }, [session, isLoggedIn, user?.googleId, user, handleGoogleBinding]);
 
   const handleBindGoogle = () => {
-    if (user?.googleId) {
-      alert("Google account is already linked");
-      return;
-    }
-
-    // Trigger Google OAuth for binding
-    signIn("google", {
-      redirect: false,
-      callbackUrl: "/profile",
-    });
+    if (user?.googleId) return alert("Sudah terhubung.");
+    signIn("google", { redirect: false, callbackUrl: "/profile" });
   };
 
   const handleUnbindGoogle = async () => {
-    if (!user?.googleId) {
-      alert("No Google account is linked");
-      return;
-    }
-
-    if (!confirm("Are you sure you want to unlink your Google account?")) {
-      return;
-    }
-
+    if (!user?.googleId) return alert("Belum terhubung.");
+    if (!confirm("Yakin putuskan akun Google?")) return;
     try {
       setUnbindingGoogle(true);
-
-      const response = await fetch("/api/auth/unbind-google", {
+      const res = await fetch("/api/auth/unbind-google", {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
       });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        console.log("Google account successfully unbound:", result);
+      const result = await res.json();
+      if (res.ok) {
         setUser(result.user);
-        alert("Google account successfully unlinked from your profile!");
+        alert("Berhasil diputuskan.");
       } else {
-        console.error("Error unbinding Google account:", result.error);
-        alert(`Error: ${result.error}`);
+        alert(result.error || "Gagal.");
       }
-    } catch (error) {
-      console.error("Error during Google unbinding:", error);
-      alert("An error occurred while unlinking your Google account");
     } finally {
       setUnbindingGoogle(false);
     }
@@ -212,76 +126,178 @@ export default function Profile() {
 
   const handleLogout = async () => {
     try {
-      // First, sign out from NextAuth if there's a session
+      // Attempt backend logout to invalidate custom token/cookie
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => { });
+      // Sign out from NextAuth session if present
       if (session) {
-        console.log("Signing out from NextAuth...");
         await signOut({ redirect: false });
       }
-
-      // Clear custom auth cookie
-      console.log("Clearing custom auth cookie...");
-      document.cookie =
-        "Authorization=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-
-      // Clear any other potential auth-related items from localStorage/sessionStorage
-      localStorage.clear();
-      sessionStorage.clear();
-
-      console.log("All sessions destroyed, redirecting to login...");
-      window.location.href = "/login";
-    } catch (error) {
-      console.error("Error during logout:", error);
-      // Force redirect even if there's an error
+      // Explicitly clear Authorization cookie (defensive)
+      document.cookie = "Authorization=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      try { localStorage.clear(); sessionStorage.clear(); } catch { }
+    } finally {
       window.location.href = "/login";
     }
   };
 
-  if (loading) return <p>Loading...</p>;
-  if (!isLoggedIn) return <p>Please login first.</p>;
-  if (!user) return <p>User data not found.</p>;
+  if (loading)
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="relative h-24 w-24">
+          <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-emerald-400 via-sky-500 to-indigo-600 animate-pulse blur-sm opacity-60" />
+          <div className="relative h-full w-full rounded-full bg-white/90 flex items-center justify-center text-xs font-medium text-gray-500 animate-pulse">
+            Loading...
+          </div>
+        </div>
+      </div>
+    );
+  if (!isLoggedIn) return <p className="p-6 text-center">Silakan login dulu.</p>;
+  if (!user) return <p className="p-6 text-center">User tidak ditemukan.</p>;
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Profile</h1>
-      <div className="space-y-2">
-        <p>
-          <strong>Name:</strong> {user.name}
-        </p>
-        <p>
-          <strong>Username:</strong> {user.username}
-        </p>
-        {user.googleEmail && (
-          <p>
-            <strong>Google Email:</strong> {user.googleEmail}
-          </p>
-        )}
-        {user.googleId ? (
-          <div className="space-y-2">
-            <p className="text-green-600">✅ Google Account Bound</p>
+    <div className="max-w-3xl mx-auto p-6">
+      <h1 className="text-3xl font-semibold mb-2">Profil Akun</h1>
+
+      <div className="bg-white/80 backdrop-blur border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="p-6 flex flex-col md:flex-row gap-8">
+          <div className="flex flex-col items-center md:w-56">
+            <AvatarDisplay
+              name={user.name}
+              image={(user.profilePicture || (session?.user as any)?.image) as string | undefined}
+              googleLinked={!!user.googleId}
+            />
+            <div className="mt-5 flex flex-col gap-2 w-full">
+              <button
+                onClick={handleLogout}
+                className="w-full bg-red-500 hover:bg-red-600 text-white text-xs px-4 py-2 rounded shadow-sm transition"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 flex-1">
+            <Info label="Nama" value={user.name} />
+            <Info label="Username">
+              <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded inline-block">
+                {user.username}
+              </span>
+            </Info>
+            <Info label="Role">
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-semibold ${user.role === "admin"
+                  ? "bg-purple-100 text-purple-700"
+                  : "bg-blue-100 text-blue-700"
+                  }`}
+              >
+                {user.role || "user"}
+              </span>
+            </Info>
+            <Info label="Google Email" value={user.googleEmail || "-"} />
+            <Info label="Status">
+              {user.googleId ? (
+                <span className="text-green-600 text-sm font-medium">✅ Terhubung</span>
+              ) : (
+                <span className="text-gray-500 text-sm">Belum Terhubung</span>
+              )}
+            </Info>
+          </div>
+        </div>
+
+        <div className="bg-gray-50/90 backdrop-blur-sm border-t px-6 py-4 flex flex-wrap gap-3">
+          {user.googleId ? (
             <button
               onClick={handleUnbindGoogle}
               disabled={unbindingGoogle}
-              className="bg-orange-500 text-white px-4 py-2 rounded disabled:opacity-50 hover:bg-orange-600"
+              className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white px-4 py-2 rounded text-sm"
             >
-              {unbindingGoogle ? "Unlinking..." : "Unbind Google Account"}
+              {unbindingGoogle ? "Memutus..." : "Putuskan Google"}
             </button>
-          </div>
-        ) : (
+          ) : (
+            <button
+              onClick={handleBindGoogle}
+              disabled={bindingGoogle}
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded text-sm"
+            >
+              {bindingGoogle ? "Menghubungkan..." : "Hubungkan Google"}
+            </button>
+          )}
           <button
-            onClick={handleBindGoogle}
-            disabled={bindingGoogle}
-            className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50 hover:bg-blue-600"
+            onClick={() => window.location.reload()}
+            className="text-sm px-4 py-2 rounded border border-gray-300 bg-gray-100 hover:bg-white"
           >
-            {bindingGoogle ? "Linking..." : "Bind Google Account"}
+            Refresh
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Info({ label, value, children }: { label: string; value?: any; children?: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-[11px] uppercase tracking-wide text-gray-500">{label}</p>
+      {children ? <div>{children}</div> : <p className="font-medium break-all">{value ?? "-"}</p>}
+    </div>
+  );
+}
+
+// Avatar with gradient fallback & hover ring effect
+function AvatarDisplay({
+  name,
+  image,
+  googleLinked,
+}: {
+  name: string;
+  image?: string;
+  googleLinked: boolean;
+}) {
+  const initial = (name || "?").trim().charAt(0).toUpperCase();
+  const gradient = useMemo(() => {
+    const palette = [
+      "from-violet-500 via-indigo-500 to-sky-500",
+      "from-emerald-500 via-teal-500 to-cyan-500",
+      "from-fuchsia-500 via-pink-500 to-rose-500",
+      "from-amber-500 via-orange-500 to-rose-500",
+      "from-sky-500 via-blue-500 to-indigo-500",
+    ];
+    const idx = initial.charCodeAt(0) % palette.length;
+    return palette[idx];
+  }, [initial]);
+
+  return (
+    <div className="relative group">
+      <div className="relative h-40 w-40">
+        {image ? (
+          <img
+            src={image}
+            alt={name}
+            className="h-40 w-40 rounded-full object-cover ring-4 ring-white shadow-sm outline outline-gray-200 group-hover:outline-emerald-400 transition"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+              const fallback = (e.currentTarget.parentElement?.querySelector(
+                '[data-fallback-avatar]'
+              ) as HTMLElement) as HTMLElement;
+              if (fallback) fallback.style.display = 'flex';
+            }}
+          />
+        ) : null}
+        <div
+          data-fallback-avatar
+          className={`absolute inset-0 ${image ? 'hidden' : 'flex'
+            } items-center justify-center rounded-full text-white text-6xl font-semibold bg-gradient-to-br ${gradient} shadow-sm ring-4 ring-white select-none`}
+        >
+          {initial}
+        </div>
+        <div className="pointer-events-none absolute inset-0 rounded-full ring-2 ring-transparent group-hover:ring-emerald-400/60 transition" />
+        {googleLinked && (
+          <span className="absolute -bottom-1 -right-1 bg-green-500 text-white text-[10px] px-2 py-1 rounded-full shadow-md">
+            Google
+          </span>
         )}
-        <div>
-          <button
-            onClick={handleLogout}
-            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-          >
-            Logout (Destroy All Sessions)
-          </button>
+        <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 bg-black/30 flex items-center justify-center gap-2 text-[10px] font-medium text-white backdrop-blur-sm transition">
+          <span className="px-2 py-1 bg-white/20 rounded-md">Avatar</span>
         </div>
       </div>
     </div>

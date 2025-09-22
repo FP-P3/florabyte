@@ -33,6 +33,9 @@ export default function CMSProducts() {
     imgUrl: "",
     category: ""
   })
+  const [uploading, setUploading] = useState(false)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string>("")
 
   useEffect(() => {
     fetchProducts()
@@ -59,21 +62,35 @@ export default function CMSProducts() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     try {
+      setUploading(true)
+      const payload = { ...formData }
+      if (imageFile) {
+        const fd = new FormData()
+        fd.append('file', imageFile)
+        const upRes = await fetch('/api/admin/products/upload', { method: 'POST', body: fd })
+        if (!upRes.ok) throw new Error('Image upload failed')
+        const upJson = await upRes.json()
+        payload.imgUrl = upJson.url
+      }
       const method = editingProduct ? "PUT" : "POST"
       const url = editingProduct ? `/api/admin/products/${editingProduct._id}` : "/api/admin/products"
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       })
       if (!res.ok) throw new Error("Failed to save product")
       fetchProducts()
       setShowModal(false)
       setEditingProduct(null)
       setFormData({ name: "", description: "", price: 0, stock: 0, imgUrl: "", category: "" })
+      setImageFile(null)
+      setImagePreview("")
       toast.success(editingProduct ? "Product updated successfully" : "Product added successfully")
     } catch (err) {
       toast.error((err as Error).message)
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -182,20 +199,40 @@ export default function CMSProducts() {
       </table>
 
       {showModal && (
-        <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">  {/* Transparan dengan blur */}
-          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md mx-4 relative">
-            <button
-              onClick={() => {
-                setShowModal(false)
-                setEditingProduct(null)
-                setFormData({ name: "", description: "", price: 0, stock: 0, imgUrl: "", category: "" })
-              }}
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xl"
+        <div
+          className="fixed inset-0 z-50 flex items-start md:items-center justify-center overflow-y-auto py-10 md:py-16 px-4 bg-black/10 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in slide-in-from-bottom md:slide-in-from-bottom-0">
+            <div className="px-6 pt-5 pb-2 border-b relative">
+              <h2 className="text-xl font-semibold text-center">
+                {editingProduct ? "Edit Product" : "Add Product"}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setEditingProduct(null);
+                  setFormData({
+                    name: "",
+                    description: "",
+                    price: 0,
+                    stock: 0,
+                    imgUrl: "",
+                    category: "",
+                  });
+                }}
+                type="button"
+                aria-label="Close"
+                className="absolute top-2.5 right-2.5 h-8 w-8 inline-flex items-center justify-center rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                ×
+              </button>
+            </div>
+            <form
+              onSubmit={handleSubmit}
+              className="flex-1 overflow-y-auto px-6 py-4 space-y-4"
             >
-              &times;
-            </button>
-            <h2 className="text-xl font-bold mb-4 text-center">{editingProduct ? "Edit Product" : "Add Product"}</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                 <input
@@ -240,15 +277,34 @@ export default function CMSProducts() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                <input
-                  type="url"
-                  placeholder="https://example.com/image.jpg"
-                  value={formData.imgUrl}
-                  onChange={(e) => setFormData({ ...formData, imgUrl: e.target.value })}
-                  required
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
+                <div className="space-y-2">
+                  {imagePreview || formData.imgUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={imagePreview || formData.imgUrl}
+                      alt={formData.name || 'preview'}
+                      className="w-40 h-40 object-cover rounded border"
+                    />
+                  ) : null}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] || null
+                      setImageFile(f)
+                      if (f) {
+                        const reader = new FileReader()
+                        reader.onload = () => setImagePreview(reader.result as string)
+                        reader.readAsDataURL(f)
+                      } else {
+                        setImagePreview("")
+                      }
+                    }}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-gray-500">JPG, PNG, or WEBP up to ~5MB</p>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
@@ -261,26 +317,38 @@ export default function CMSProducts() {
                   className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowModal(false)
-                    setEditingProduct(null)
-                    setFormData({ name: "", description: "", price: 0, stock: 0, imgUrl: "", category: "" })
-                  }}
-                  className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
+              <div className="h-3" />
             </form>
+            <div className="px-6 py-4 border-t bg-gray-50 flex gap-3 sticky bottom-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowModal(false);
+                  setEditingProduct(null);
+                  setFormData({
+                    name: "",
+                    description: "",
+                    price: 0,
+                    stock: 0,
+                    imgUrl: "",
+                    category: "",
+                  });
+                }}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={(e) => {
+                  // submit parent form programmatically
+                  (e.currentTarget.closest('div')?.previousElementSibling as HTMLFormElement)?.requestSubmit();
+                }}
+                disabled={uploading}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+              >
+                {uploading ? "Uploading…" : "Save"}
+              </button>
+            </div>
           </div>
         </div>
       )}
