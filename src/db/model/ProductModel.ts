@@ -135,6 +135,44 @@ class ProductModel {
   static async getByCategory(category: string) {
     return await db.collection("Products").find({ category }).toArray();
   }
+
+  // Paginated list + search + category
+  static async getProductsPaged(opts?: {
+    query?: string;
+    category?: string;
+    page?: number;
+    pageSize?: number;
+  }) {
+    const query = opts?.query?.trim();
+    const category = opts?.category?.trim();
+    const page = Math.max(1, Number(opts?.page || 1));
+    const pageSize = Math.min(48, Math.max(1, Number(opts?.pageSize || 12)));
+
+    const filter: any = {};
+    if (query) {
+      filter.$or = [
+        { name: { $regex: query, $options: "i" } },
+        { category: { $regex: query, $options: "i" } },
+      ];
+    }
+    if (category) {
+      filter.category = category;
+    }
+
+    const [items, total] = await Promise.all([
+      db
+        .collection("Products")
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .toArray(),
+      db.collection("Products").countDocuments(filter),
+    ]);
+
+    const pages = Math.max(1, Math.ceil(total / pageSize));
+    return { items, total, page, pages, pageSize };
+  }
 }
 
 export default ProductModel;
