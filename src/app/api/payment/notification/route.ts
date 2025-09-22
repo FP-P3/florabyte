@@ -2,15 +2,43 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/config/mongodb";
 import * as midtransClient from "midtrans-client";
+// tambahkan import crypto untuk verifikasi signature
+import crypto from "crypto";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({} as any));
     console.log("Midtrans notif body:", body);
 
+    // Validasi signature_key: sha512(order_id + status_code + gross_amount + serverKey)
     const orderId = body?.order_id || body?.orderId;
-    // Jika ini test button (order_id dummy) atau kosong → balas OK saja
-    if (!orderId || String(orderId).startsWith("payment_notif_test_")) {
+    const statusCode = String(body?.status_code ?? "");
+    const grossAmount = String(body?.gross_amount ?? "");
+    const signature = String(body?.signature_key ?? "").toLowerCase();
+    const serverKey = process.env.MIDTRANS_SERVER_KEY as string;
+
+    if (!serverKey) {
+      console.error("MIDTRANS_SERVER_KEY is missing");
+      return NextResponse.json({ ok: false }, { status: 500 });
+    }
+
+    if (orderId && statusCode && grossAmount && signature) {
+      const raw = `${orderId}${statusCode}${grossAmount}${serverKey}`;
+      const expectedSig = crypto.createHash("sha512").update(raw).digest("hex");
+      if (expectedSig.toLowerCase() !== signature) {
+        console.warn("Invalid Midtrans signature_key");
+        return NextResponse.json({ ok: false }, { status: 401 });
+      }
+    } else {
+      // Dashboard "Test notification URL" bisa kirim payload tidak lengkap
+      if (!orderId || String(orderId).startsWith("payment_notif_test_")) {
+        return NextResponse.json({ ok: true });
+      }
+      return NextResponse.json({ ok: false }, { status: 400 });
+    }
+
+    // Payload test dari dashboard → tidak ada transaksi nyata
+    if (String(orderId).startsWith("payment_notif_test_")) {
       return NextResponse.json({ ok: true });
     }
 
@@ -21,7 +49,6 @@ export async function POST(request: NextRequest) {
       serverKey: process.env.MIDTRANS_SERVER_KEY,
     });
 
-    // Ambil status transaksi; coba notification lalu fallback ke status
     let status;
     try {
       status = await core.transaction.notification(body);

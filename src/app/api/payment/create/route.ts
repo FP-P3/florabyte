@@ -19,23 +19,46 @@ export async function POST(request: NextRequest) {
 
     const orderId = `FLB-${Date.now()}-${userId.slice(-6)}`;
 
-    const snap = new midtransClient.Snap({
+    // Sanitize items -> integer rupiah, qty >= 1
+    const items = cart.items.map((it: any) => ({
+      id: String(it.productId),
+      name: String(it.name || "Item"),
+      price: Math.round(Number(it.price) || 0),
+      quantity: Math.max(1, Number(it.qty) || 1),
+    }));
+
+    // Opsional: ongkir/discount sebagai item terpisah jika ada
+    const shippingFee = Math.round(Number((cart as any).shippingFee || 0));
+    if (shippingFee > 0)
+      items.push({
+        id: "shipping",
+        name: "Shipping Fee",
+        price: shippingFee,
+        quantity: 1,
+      });
+    const discount = Math.round(Number((cart as any).discount || 0));
+    if (discount > 0)
+      items.push({
+        id: "discount",
+        name: "Discount",
+        price: -discount,
+        quantity: 1,
+      });
+
+    const grossAmount = items.reduce(
+      (sum: number, i: any) => sum + i.price * i.quantity,
+      0
+    );
+
+    const snap = new (midtransClient as any).Snap({
       isProduction: process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true",
       serverKey: process.env.MIDTRANS_SERVER_KEY,
       clientKey: process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY,
     });
 
     const parameter = {
-      transaction_details: {
-        order_id: orderId,
-        gross_amount: cart.total,
-      },
-      item_details: cart.items.map((it) => ({
-        id: it.productId,
-        price: it.price,
-        quantity: it.qty,
-        name: it.name,
-      })),
+      transaction_details: { order_id: orderId, gross_amount: grossAmount },
+      item_details: items,
       credit_card: { secure: true },
     };
 
@@ -45,7 +68,7 @@ export async function POST(request: NextRequest) {
       .collection("cart")
       .updateOne(
         { userId: new ObjectId(userId), status: "pending" },
-        { $set: { midtransOrderId: orderId } }
+        { $set: { midtransOrderId: orderId, total: grossAmount } }
       );
 
     return NextResponse.json({ token: trx.token, orderId });
