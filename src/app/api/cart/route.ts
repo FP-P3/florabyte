@@ -21,8 +21,40 @@ export async function GET(request: Request) {
     if (!userId) {
       throw { message: "Unauthorized", status: 401 };
     }
-    const wishlists = await CartModel.getByUserIdWithProducts(userId);
-    return Response.json(wishlists);
+
+    const cart = await CartModel.getPendingWithProducts(userId);
+    return Response.json(cart);
+  } catch (err) {
+    return errorHandler(err);
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const { productId, action } = await request.json();
+    const userId = request.headers.get("x-user-id");
+    if (!userId) {
+      throw { message: "Unauthorized", status: 401 };
+    }
+    if (!["increase", "decrease"].includes(action)) {
+      throw { message: "Invalid action", status: 400 };
+    }
+    await CartModel.updateQty(userId, productId, action);
+    return Response.json({ message: "Qty updated" });
+  } catch (err) {
+    return errorHandler(err);
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { productId } = await request.json();
+    const userId = request.headers.get("x-user-id");
+    if (!userId) {
+      throw { message: "Unauthorized", status: 401 };
+    }
+    await CartModel.removeItem(userId, productId);
+    return Response.json({ message: "Item removed" });
   } catch (err) {
     return errorHandler(err);
   }

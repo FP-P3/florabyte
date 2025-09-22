@@ -1,7 +1,6 @@
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ObjectId } from "mongodb";
 import { ProductType } from "@/types/ProductType";
 
 interface ProductCardProps {

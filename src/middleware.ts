@@ -91,6 +91,12 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/plants/:path*", "/plants/:path*", "/login", "/api/cart", "/profile"], // Tambahkan /profile
+  matcher: [
+    "/api/plants/:path*",
+    "/plants/:path*",
+    "/login",
+    "/api/cart",
+    "/profile",
+  ], // Tambahkan /profile
   runtime: "nodejs",
 };

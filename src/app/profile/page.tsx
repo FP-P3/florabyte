@@ -126,17 +126,27 @@ export default function Profile() {
 
   const handleLogout = async () => {
     try {
-      // Attempt backend logout to invalidate custom token/cookie
-      await fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => { });
-      // Sign out from NextAuth session if present
-      if (session) {
-        await signOut({ redirect: false });
-      }
-      // Explicitly clear Authorization cookie (defensive)
-      document.cookie = "Authorization=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-      try { localStorage.clear(); sessionStorage.clear(); } catch { }
-    } finally {
-      window.location.href = "/login";
+      // 1) Clear custom auth cookie on server (httpOnly)
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      // 2) Sign out NextAuth session if present (safe to call regardless)
+      await signOut({ redirect: false });
+
+      // 3) Clear client-side storage
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch {}
+
+      // 4) Redirect to login
+      window.location.assign("/login");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      // Force redirect even if there's an error
+      window.location.assign("/login");
     }
   };
 

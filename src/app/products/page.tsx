@@ -5,20 +5,10 @@ import toast from "react-hot-toast";
 import ProductCard from "@/components/ProductCard";
 
 export default function ProductsPage() {
-  const [isSignedIn, setIsSignedIn] = useState(false);
   const [products, setProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("");
 
   useEffect(() => {
-    const checkLogin = () => {
-      const cookies = document.cookie.split("; ");
-      const authCookie = cookies.find((cookie) =>
-        cookie.startsWith("Authorization=")
-      );
-      setIsSignedIn(Boolean(authCookie));
-    };
-    checkLogin();
-
     fetchProducts(selectedCategory);
   }, [selectedCategory]);
 
@@ -36,11 +26,6 @@ export default function ProductsPage() {
   };
 
   const handleAddToCart = async (productId: string) => {
-    if (!isSignedIn) {
-      toast.error("Please log in to add items to your cart.");
-      return;
-    }
-
     try {
       const response = await fetch("/api/cart", {
         method: "POST",

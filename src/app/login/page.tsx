@@ -33,9 +33,9 @@ export default function Login() {
 
       // Redirect berdasarkan role
       if (data.role === "admin") {
-        router.push("/cms/products");
+        window.location.href = "/cms/products";
       } else {
-        router.push("/plants");
+        window.location.href = "/plants";
       }
     } catch (err) {
       toast.error((err as Error).message);

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -12,10 +12,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { Leaf, Menu, LogOut } from "lucide-react";
-import { useFormStatus } from "react-dom";
-// ⬇️ GANTI path ini sesuai lokasi file action.ts kamu
-import { handleLogout } from "@/action";
+import { Leaf, Menu } from "lucide-react";
+import Image from "next/image";
+import type { UserType } from "@/types/userType";
 
 type Props = { isSignedIn: boolean };
 
@@ -46,31 +45,39 @@ function NavButton({
   );
 }
 
-function LogoutButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button
-      type="submit"
-      variant="destructive"
-      className="gap-2"
-      disabled={pending}
-    >
-      <LogOut className="h-4 w-4" />
-      {pending ? "Logging out..." : "Logout"}
-    </Button>
-  );
-}
-
 export default function NavbarClient({ isSignedIn }: Props) {
   const [open, setOpen] = useState(false);
+  const [me, setMe] = useState<Pick<
+    UserType,
+    "name" | "profilePicture"
+  > | null>(null);
+
+  useEffect(() => {
+    let ignore = false;
+    async function loadMe() {
+      if (!isSignedIn) return;
+      try {
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as UserType;
+        if (!ignore)
+          setMe({ name: data.name, profilePicture: data.profilePicture });
+      } catch {
+        // fail silently; we'll show fallback avatar
+      }
+    }
+    loadMe();
+    return () => {
+      ignore = true;
+    };
+  }, [isSignedIn]);
 
   const baseLinks = [{ href: "/products", label: "Products" }];
 
   const authedExtra = isSignedIn
     ? [
-        { href: "/plants/dashboard", label: "Dashboard" },
+        { href: "/plants", label: "Dashboard" },
         { href: "/plants/scan", label: "Scan" },
-        { href: "/profile", label: "Profile" },
       ]
     : [];
 
@@ -105,12 +112,24 @@ export default function NavbarClient({ isSignedIn }: Props) {
         {/* Right CTA */}
         <div className="hidden md:flex items-center gap-2">
           {isSignedIn ? (
-            <form action={handleLogout}>
-              <LogoutButton />
-            </form>
+            <Link href="/profile" aria-label="Profile" className="block">
+              {me?.profilePicture ? (
+                <Image
+                  src={me.profilePicture}
+                  alt={me.name ? `${me.name}'s avatar` : "Profile"}
+                  width={36}
+                  height={36}
+                  className="h-9 w-9 rounded-full object-cover border"
+                />
+              ) : (
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-emerald-600 text-white border">
+                  <Leaf className="h-5 w-5" />
+                </span>
+              )}
+            </Link>
           ) : (
             <Button asChild>
-              <Link href="/register">Get started</Link>
+              <Link href="/login">Login</Link>
             </Button>
           )}
         </div>
@@ -159,9 +178,29 @@ export default function NavbarClient({ isSignedIn }: Props) {
               <Separator className="my-2" />
 
               {isSignedIn ? (
-                <form action={handleLogout} onSubmit={() => setOpen(false)}>
-                  <LogoutButton />
-                </form>
+                <Button
+                  asChild
+                  className="w-full"
+                  variant="ghost"
+                  onClick={() => setOpen(false)}
+                >
+                  <Link href="/profile" className="flex items-center gap-3">
+                    {me?.profilePicture ? (
+                      <Image
+                        src={me.profilePicture}
+                        alt={me.name ? `${me.name}'s avatar` : "Profile"}
+                        width={28}
+                        height={28}
+                        className="h-7 w-7 rounded-full object-cover border"
+                      />
+                    ) : (
+                      <span className="grid h-7 w-7 place-items-center rounded-full bg-emerald-600 text-white border">
+                        <Leaf className="h-4 w-4" />
+                      </span>
+                    )}
+                    <span>Profile</span>
+                  </Link>
+                </Button>
               ) : (
                 <Button
                   asChild
