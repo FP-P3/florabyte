@@ -12,7 +12,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { Leaf, Menu } from "lucide-react";
+import { Leaf, Menu, ShoppingCart } from "lucide-react";
 import Image from "next/image";
 import type { UserType } from "@/types/userType";
 
@@ -111,6 +111,13 @@ export default function NavbarClient({ isSignedIn }: Props) {
 
         {/* Right CTA */}
         <div className="hidden md:flex items-center gap-2">
+          {/* Tombol Cart di desktop */}
+          <Button asChild variant="ghost" size="icon" aria-label="Cart">
+            <Link href="/cart">
+              <ShoppingCart className="h-5 w-5 text-emerald-600" />
+            </Link>
+          </Button>
+
           {isSignedIn ? (
             <Link href="/profile" aria-label="Profile" className="block">
               {me?.profilePicture ? (
@@ -160,6 +167,13 @@ export default function NavbarClient({ isSignedIn }: Props) {
                   onClick={() => setOpen(false)}
                 />
               ))}
+
+              {/* Tambah item Cart di mobile */}
+              <NavButton
+                href="/cart"
+                label="Cart"
+                onClick={() => setOpen(false)}
+              />
 
               {isSignedIn && (
                 <>
