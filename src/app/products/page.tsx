@@ -125,7 +125,9 @@ export default function ProductsPage() {
                   aria-pressed={active}
                   data-active={active}
                   onClick={() => {
-                    setSelectedCategory((prev) => (prev === c.key ? "" : c.key));
+                    setSelectedCategory((prev) =>
+                      prev === c.key ? "" : c.key
+                    );
                     setPage(1);
                   }}
                   className={[
