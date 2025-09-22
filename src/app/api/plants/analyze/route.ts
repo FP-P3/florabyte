@@ -168,10 +168,51 @@ export async function POST(request: Request) {
       aiJson?.label?.scientificName ||
       aiJson?.label?.commonName ||
       "this plant";
-    const queryText =
+
+    // Incorporate AI-provided vectorSearch cues when present
+    const vs: { query?: string; keywords?: string[] } =
+      (
+        aiJson as unknown as {
+          productRecommendations?: {
+            vectorSearch?: { query?: string; keywords?: string[] };
+          };
+        }
+      )?.productRecommendations?.vectorSearch ?? {};
+    const aiKeywords: string[] = Array.isArray(vs?.keywords)
+      ? (vs.keywords as string[])
+      : [];
+    const baseQuery =
       supplies.length > 0
         ? `Supplies needed for ${species}: ${supplies.join(", ")}`
         : `Supplies for plant care: fertilizer, potting mix, perlite, moisture meter, pruning shears, moss pole`;
+    const queryText =
+      typeof vs?.query === "string" && vs.query.trim().length > 0
+        ? `${baseQuery}. ${vs.query}`
+        : baseQuery;
+
+    // Derive desired categories from AI keywords/supplies (align with Products.category values)
+    const deriveCategories = (words: string[]): string[] => {
+      const out = new Set<string>();
+      for (const w of words) {
+        const s = String(w).toLowerCase();
+        if (/fertil/i.test(s) || /npk/.test(s) || /kompos/.test(s))
+          out.add("fertilizer");
+        if (
+          /soil|media|potting|coco|peat|perlite|vermiculite|bark|moss/i.test(s)
+        )
+          out.add("soil");
+        if (/pest|insect|fungic|mite|herbicide|pestisida|insektisida/i.test(s))
+          out.add("pesticide");
+        if (
+          /tool|shear|gunting|sekop|shovel|sprayer|meter|glove|scissor|pot/i.test(
+            s
+          )
+        )
+          out.add("tools");
+      }
+      return Array.from(out);
+    };
+    const categoriesWanted = deriveCategories([...aiKeywords, ...supplies]);
 
     const embed: EmbedContentResponse = await ai.models.embedContent({
       model: MODEL_EMBED,
@@ -191,17 +232,24 @@ export async function POST(request: Request) {
 
     const Products = db.collection<ProductDoc>(PRODUCTS_COLL);
 
-    const pipeline = [
+    // Strict vector search: filter by stock and desired categories if inferred
+    const filterStrict: {
+      stock: { $gt: number };
+      category?: { $in: string[] };
+    } = { stock: { $gt: 0 } };
+    if (categoriesWanted.length > 0)
+      filterStrict.category = { $in: categoriesWanted };
+    const pipelineStrict = [
       {
         $vectorSearch: {
           index: VECTOR_INDEX,
           path: "embedding",
           queryVector,
-          numCandidates: 200,
-          limit: 8,
+          numCandidates: 400,
+          limit: 24,
+          filter: filterStrict,
         },
       },
-      { $match: { stock: { $gt: 0 } } },
       {
         $project: {
           name: 1,
@@ -210,13 +258,163 @@ export async function POST(request: Request) {
           stock: 1,
           imgUrl: 1,
           category: 1,
-          score: { $meta: "vectorSearchScore" },
+          vectScore: { $meta: "vectorSearchScore" },
+        },
+      },
+      {
+        $addFields: {
+          categoryBoost: {
+            $cond: [{ $in: ["$category", categoriesWanted] }, 0.15, 0],
+          },
+          stockBoost: { $min: [{ $divide: ["$stock", 100] }, 0.2] },
+          finalScore: { $add: ["$vectScore", "$categoryBoost", "$stockBoost"] },
+        },
+      },
+      { $sort: { finalScore: -1 } },
+      { $limit: 8 },
+      {
+        $project: {
+          name: 1,
+          description: 1,
+          price: 1,
+          stock: 1,
+          imgUrl: 1,
+          category: 1,
+          score: "$finalScore",
         },
       },
     ];
 
-    const productRecommendations =
-      await Products.aggregate<ProductRecommendation>(pipeline).toArray();
+    let productRecommendations =
+      await Products.aggregate<ProductRecommendation>(pipelineStrict).toArray();
+
+    // Relaxed vector search: drop category filter if still empty
+    if (!productRecommendations || productRecommendations.length === 0) {
+      const pipelineRelaxed = [
+        {
+          $vectorSearch: {
+            index: VECTOR_INDEX,
+            path: "embedding",
+            queryVector,
+            numCandidates: 400,
+            limit: 24,
+            filter: { stock: { $gt: 0 } },
+          },
+        },
+        {
+          $project: {
+            name: 1,
+            description: 1,
+            price: 1,
+            stock: 1,
+            imgUrl: 1,
+            category: 1,
+            vectScore: { $meta: "vectorSearchScore" },
+          },
+        },
+        {
+          $addFields: {
+            categoryBoost: {
+              $cond: [{ $in: ["$category", categoriesWanted] }, 0.15, 0],
+            },
+            stockBoost: { $min: [{ $divide: ["$stock", 100] }, 0.2] },
+            finalScore: {
+              $add: ["$vectScore", "$categoryBoost", "$stockBoost"],
+            },
+          },
+        },
+        { $sort: { finalScore: -1 } },
+        { $limit: 8 },
+        {
+          $project: {
+            name: 1,
+            description: 1,
+            price: 1,
+            stock: 1,
+            imgUrl: 1,
+            category: 1,
+            score: "$finalScore",
+          },
+        },
+      ];
+      productRecommendations = await Products.aggregate<ProductRecommendation>(
+        pipelineRelaxed
+      ).toArray();
+    }
+
+    // Regex fallback using keywords/supplies/species if still empty
+    if (!productRecommendations || productRecommendations.length === 0) {
+      const pool = Array.from(
+        new Set(
+          [...aiKeywords, ...supplies, species]
+            .map((s) => String(s || "").trim())
+            .filter(Boolean)
+        )
+      ).slice(0, 10);
+      const escapeRegex = (s: string) =>
+        s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const pattern = pool.map(escapeRegex).join("|");
+      const orMatch = pattern
+        ? [
+            { name: { $regex: pattern, $options: "i" } },
+            { description: { $regex: pattern, $options: "i" } },
+            { category: { $regex: pattern, $options: "i" } },
+          ]
+        : [];
+      const matchRegex: Record<string, unknown> = { stock: { $gt: 0 } };
+      if (orMatch.length > 0)
+        (matchRegex as Record<string, unknown>)["$or"] =
+          orMatch as unknown as Record<string, unknown>[];
+      if (categoriesWanted.length > 0)
+        (matchRegex as Record<string, unknown>)["category"] = {
+          $in: categoriesWanted,
+        } as unknown as Record<string, unknown>;
+      const pipelineRegex: Record<string, unknown>[] = [
+        { $match: matchRegex },
+        { $limit: 8 },
+        {
+          $project: {
+            name: 1,
+            description: 1,
+            price: 1,
+            stock: 1,
+            imgUrl: 1,
+            category: 1,
+            score: { $literal: 0.1 },
+          },
+        },
+      ];
+      productRecommendations = await Products.aggregate<ProductRecommendation>(
+        pipelineRegex
+      ).toArray();
+    }
+
+    // Final deterministic fallback: top in-stock products by desired categories, else any in-stock
+    if (!productRecommendations || productRecommendations.length === 0) {
+      const matchStage: Record<string, unknown> =
+        categoriesWanted.length > 0
+          ? { stock: { $gt: 0 }, category: { $in: categoriesWanted } }
+          : { stock: { $gt: 0 } };
+      const pipelineDefault: Record<string, unknown>[] = [
+        { $match: matchStage },
+        { $sort: { stock: -1 } },
+        { $limit: 8 },
+        {
+          $project: {
+            name: 1,
+            description: 1,
+            price: 1,
+            stock: 1,
+            imgUrl: 1,
+            category: 1,
+            score: { $literal: 0.05 },
+          },
+        },
+      ];
+      productRecommendations = await Products.aggregate<ProductRecommendation>(
+        pipelineDefault
+      ).toArray();
+    }
 
     return new Response(
       JSON.stringify({
