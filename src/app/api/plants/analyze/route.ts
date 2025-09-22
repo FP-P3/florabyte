@@ -24,7 +24,7 @@ Kamu adalah seorang ahli botanist, Analisis FOTO berikut dan identifikasi apakah
 
 {
   "isPlant": boolean,
-  "confidence": number,                 
+  "confidence": number,
   "label": {
     "scientificName": "string|null",
     "commonName": "string|null",
@@ -50,23 +50,34 @@ Kamu adalah seorang ahli botanist, Analisis FOTO berikut dan identifikasi apakah
   "notes": ["string"],
   "altCandidates": [
     { "commonName": "string", "confidence": number }
-  ]
+  ],
+  "productRecommendations": {
+    "vectorSearch": {
+      "query": "string",
+      "keywords": ["string"]
+    }
+  }
 }
 
 ATURAN KEPUTUSAN:
 - Jika bukan tanaman ATAU confidence < 0.6:
   - "isPlant": false
   - "confidence" <= 0.6
-  - semua field "label" = null, "part"="unknown", "plantingPlan"={}, "care"={}, "schedule"=[], "altCandidates":[]
+  - semua field "label" = null, "part"="unknown", "plantingPlan"={}, "care"={}, "schedule"=[], "altCandidates":[], "productRecommendations": { "vectorSearch": { "query": "", "keywords": [] } }
 - Jika tanaman:
   - isi label sesuai tingkat kepastian (boleh berhenti di genus/family)
   - "suppliesNeeded" harus spesifik (contoh: "organic fertilizer","well-draining potting mix","perlite","moss pole","moisture meter","pruning shears")
+  - "productRecommendations.vectorSearch.query" = kalimat ringkas max 200 karakter untuk embedding pencarian produk. Gabungkan kebutuhan perawatan: pupuk, media, alat, insektisida, dll.
+  - "productRecommendations.vectorSearch.keywords" = array kata/frasa (6–12 item) terkait produk nyata: misalnya "pupuk NPK", "media tanam cocopeat", "sekop taman", "sprayer", "fungisida organik", "polybag 30cm", dll.
+
 PANDUAN:
 - Gunakan hanya petunjuk visual pada gambar.
 - Bedakan tanaman asli vs tiruan/ilustrasi.
 - Jika banyak objek, fokus ke tanaman paling dominan.
 - Bahasa Indonesia, singkat & praktis.
+
 OUTPUT: JSON valid sesuai skema di atas, tanpa teks tambahan apa pun.
+
 `;
 
 // sanitizer: strip markdown fences and fallback to first {...}
