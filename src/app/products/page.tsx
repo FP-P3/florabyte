@@ -76,7 +76,13 @@ export default function ProductsPage() {
     }
   };
 
-  const categories = ["All", "soil", "fertilizer", "pesticide", "tools"];
+  const categoryCards = [
+    { key: "soil", label: "Soil", image: "/soils.webp" },
+    { key: "fertilizer", label: "Fertilizer", image: "/fertilizer.webp" },
+    { key: "pesticide", label: "Pesticide", image: "/pests.webp" },
+    { key: "tools", label: "Tools", image: "/tools.webp" },
+  ];
+
   const showingFrom = useMemo(
     () => (total === 0 ? 0 : (page - 1) * pageSize + 1),
     [page, total]
@@ -87,7 +93,7 @@ export default function ProductsPage() {
   );
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-white via-emerald-50/40 to-white text-foreground">
+    <main className="min-h-screen page-bg-home text-foreground">
       <section className="mx-auto max-w-7xl px-4 md:px-6 py-12 md:py-16">
         <h1 className="text-3xl md:text-4xl font-bold text-center mb-8">
           Our Products
@@ -107,30 +113,54 @@ export default function ProductsPage() {
           />
         </div>
 
-        {/* Categories */}
-        <div className="flex justify-center gap-2 mb-6 flex-wrap">
-          {categories.map((cat) => {
-            const value = cat === "All" ? "" : cat;
-            const active =
-              (cat === "All" && selectedCategory === "") ||
-              selectedCategory === cat;
-            return (
-              <button
-                key={cat}
-                onClick={() => {
-                  setSelectedCategory(value);
-                  setPage(1);
-                }}
-                className={`px-4 py-2 rounded-full text-sm font-medium ${
-                  active
-                    ? "bg-emerald-600 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                }`}
-              >
-                {cat}
-              </button>
-            );
-          })}
+        {/* Category cards (tanpa All, wrap pakai grid) */}
+        <div className="mx-auto max-w-5xl mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-1">
+            {categoryCards.map((c) => {
+              const active = selectedCategory === c.key;
+              return (
+                <button
+                  key={c.key}
+                  type="button"
+                  aria-pressed={active}
+                  data-active={active}
+                  onClick={() => {
+                    setSelectedCategory((prev) =>
+                      prev === c.key ? "" : c.key
+                    );
+                    setPage(1);
+                  }}
+                  className={[
+                    "group relative w-full h-44 md:h-52", // lebih tinggi agar muat ikon besar
+                    "rounded-2xl bg-white border border-slate-200 shadow-[0_6px_20px_rgba(2,44,34,0.06)]",
+                    "transition hover:shadow-[0_10px_28px_rgba(2,44,34,0.10)] hover:-translate-y-0.5",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
+                    "data-[active=true]:ring-2 data-[active=true]:ring-emerald-600 data-[active=true]:ring-offset-2",
+                  ].join(" ")}
+                >
+                  <div className="relative z-10 flex h-full w-full flex-col items-center justify-between py-4">
+                    {/* Title di atas */}
+                    <h3 className="text-slate-800 font-semibold text-lg md:text-xl tracking-tight">
+                      {c.label}
+                    </h3>
+
+                    {/* Icon/logo besar di tengah */}
+                    <img
+                      src={c.image}
+                      alt={c.label}
+                      className="h-24 w-24 md:h-28 md:w-28 object-contain" // ikon dibesarkan
+                    />
+                  </div>
+
+                  {/* Soft inner highlight */}
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(120%_60%_at_50%_0%,rgba(255,255,255,0.9),transparent_60%)]"
+                  />
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Meta */}

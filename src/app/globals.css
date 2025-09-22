@@ -136,3 +136,14 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Reusable homepage-like background: white + soft emerald glow on top */
+.page-bg-home {
+  background-color: #fff;
+  background-image: radial-gradient(
+    120% 60% at 50% 0%,
+    rgba(16, 185, 129, 0.08),
+    transparent 60%
+  );
+  /* feel free to tweak the alpha (0.08) or size for exact match */
+}
