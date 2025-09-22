@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/config/mongodb";
-const midtransClient = require("midtrans-client");
+import * as midtransClient from "midtrans-client";
 
 export async function POST(request: NextRequest) {
   try {

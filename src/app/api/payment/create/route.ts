@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import CartModel from "@/db/model/CartModel";
 import { db } from "@/db/config/mongodb";
 import { ObjectId } from "mongodb";
-// gunakan require agar aman untuk CJS
-const midtransClient = require("midtrans-client");
+import * as midtransClient from "midtrans-client"; // ESM namespace import
 
 export async function POST(request: NextRequest) {
   try {
