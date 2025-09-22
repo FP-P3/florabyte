@@ -22,6 +22,17 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [bindingGoogle, setBindingGoogle] = useState(false);
   const [unbindingGoogle, setUnbindingGoogle] = useState(false);
+  const [orders, setOrders] = useState<OrderHistoryItem[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+
+  interface OrderHistoryItem {
+    _id: string;
+    midtransOrderId: string;
+    status: "pending" | "paid" | "cancelled";
+    total: number;
+    createdAt: string;
+    items: { productId: string; name: string; price: number; qty: number }[];
+  }
 
   useEffect(() => {
     fetch("/api/auth/me", { credentials: "include", cache: "no-store" })
@@ -97,6 +108,17 @@ export default function Profile() {
     }
   }, [session, isLoggedIn, user?.googleId, user, handleGoogleBinding]);
 
+  // Ambil riwayat order setelah user confirmed login
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    setOrdersLoading(true);
+    fetch("/api/orders", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.statusText)))
+      .then((data) => setOrders(data.orders || []))
+      .catch(() => setOrders([]))
+      .finally(() => setOrdersLoading(false));
+  }, [isLoggedIn]);
+
   const handleBindGoogle = () => {
     if (user?.googleId) return alert("Sudah terhubung.");
     signIn("google", { redirect: false, callbackUrl: "/profile" });
@@ -165,7 +187,7 @@ export default function Profile() {
   if (!user) return <p className="p-6 text-center">User tidak ditemukan.</p>;
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto p-6 space-y-8">
       <h1 className="text-3xl font-semibold mb-2">Profil Akun</h1>
 
       <div className="bg-white/80 backdrop-blur border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -240,6 +262,79 @@ export default function Profile() {
           </button>
         </div>
       </div>
+
+      {/* Riwayat Pembelian */}
+      <section>
+        <h2 className="text-2xl font-semibold mb-4">Riwayat Pembelian</h2>
+        <div className="bg-white/80 backdrop-blur border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="max-h-[420px] overflow-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-100 text-left text-[11px] uppercase tracking-wide text-gray-600">
+                <tr>
+                  <th className="py-2 px-3">Tanggal</th>
+                  <th className="py-2 px-3">Order ID</th>
+                  <th className="py-2 px-3">Produk</th>
+                  <th className="py-2 px-3">Status</th>
+                  <th className="py-2 px-3 text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ordersLoading && (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-gray-500">
+                      Memuat riwayat...
+                    </td>
+                  </tr>
+                )}
+                {!ordersLoading && !orders.length && (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-gray-500">
+                      Belum ada riwayat pembelian.
+                    </td>
+                  </tr>
+                )}
+                {!ordersLoading &&
+                  orders.map((o) => {
+                    const date = new Date(o.createdAt);
+                    const formatted = date.toLocaleDateString("id-ID", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    });
+                    const statusClass =
+                      o.status === "paid"
+                        ? "bg-green-100 text-green-700"
+                        : o.status === "cancelled"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-yellow-100 text-yellow-700";
+                    const itemsLabel = o.items
+                      .map((it) => `${it.name}${it.qty > 1 ? ` x${it.qty}` : ""}`)
+                      .join(", ");
+                    return (
+                      <tr key={o._id} className="border-t border-gray-100">
+                        <td className="py-2 px-3 whitespace-nowrap text-gray-600">{formatted}</td>
+                        <td className="py-2 px-3 font-mono text-[11px] text-gray-500">
+                          {o.midtransOrderId || o._id.slice(-8)}
+                        </td>
+                        <td className="py-2 px-3 max-w-[240px]">
+                          <p className="truncate" title={itemsLabel}>{itemsLabel}</p>
+                        </td>
+                        <td className="py-2 px-3">
+                          <span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${statusClass}`}>
+                            {o.status}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 text-right font-medium tabular-nums">
+                          {formatIDR(o.total)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -312,4 +407,13 @@ function AvatarDisplay({
       </div>
     </div>
   );
+}
+
+// Simple Rupiah formatter (fallback jika Intl tidak support)
+function formatIDR(value: number) {
+  try {
+    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(value);
+  } catch {
+    return `Rp ${value.toLocaleString("id-ID")}`;
+  }
 }
