@@ -156,7 +156,7 @@ export function PlantCard({ plant }: PlantCardProps) {
             </div>
 
             {/* Schedule Tiles */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               {scheduleTypes.map((type) => {
                 const meta = metaByType[type];
                 const item = getScheduleItem(type);
@@ -166,7 +166,7 @@ export function PlantCard({ plant }: PlantCardProps) {
                 return (
                   <div
                     key={type}
-                    className={`flex items-start gap-3 p-3 rounded-xl ${meta.bg} border ${meta.border}`}
+                    className={`flex items-start gap-3 p-3 rounded-xl w-full ${meta.bg} border ${meta.border}`}
                   >
                     <div className={`p-2 rounded-lg ${meta.pillBg}`}>
                       {meta.icon}
