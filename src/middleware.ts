@@ -32,6 +32,52 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (request.nextUrl.pathname.startsWith("/cms")) {
+    if (!auth) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    const [type, token] = auth?.split(" ");
+    if (type !== "Bearer" || !token) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    const decodedToken = verifyToken(token) as { id: string; role: string };
+
+    if (decodedToken.role !== "admin") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    return NextResponse.next();
+  }
+
+  if (request.nextUrl.pathname.startsWith("/api/cms")) {
+    try {
+      if (!auth) throw { message: "Please login first", status: 401 };
+      const [type, token] = auth?.split(" ");
+
+      if (type !== "Bearer" || !token)
+        throw { message: "Invalid token", status: 401 };
+      const decodedToken = verifyToken(token) as { id: string; role: string };
+
+      if (decodedToken.role !== "admin")
+        throw { message: "Forbidden Access", status: 403 };
+
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set("x-user-id", decodedToken.id as string);
+      requestHeaders.set("x-user-role", decodedToken.role as string);
+      const response = NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
+
+      return response;
+    } catch (err) {
+      return errorHandler(err);
+    }
+  }
+
   if (request.nextUrl.pathname.startsWith("/api/plants")) {
     try {
       if (!auth) throw { message: "Please login first", status: 401 };
@@ -112,7 +158,9 @@ export const config = {
     "/login",
     "/api/cart",
     "/profile",
-    "/api/payment/:path*", // penting: tambahkan
+    "/api/payment/:path*",
+    "/api/cms/:path*",
+    "/cms/:path*",
   ],
   runtime: "nodejs",
 };
