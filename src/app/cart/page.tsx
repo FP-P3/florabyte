@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import Script from "next/script";
 
 interface CartItem {
   productId: string;
@@ -31,6 +32,7 @@ export default function CartPage() {
   const [cart, setCart] = useState<CartData>({ items: [], total: 0 });
   const [loading, setLoading] = useState(true);
   const [errorType, setErrorType] = useState<string | null>(null);
+  const [paying, setPaying] = useState(false);
 
   useEffect(() => {
     fetchCart();
@@ -105,6 +107,33 @@ export default function CartPage() {
     }
   };
 
+  const handleCheckout = async () => {
+    try {
+      setPaying(true);
+      const res = await fetch("/api/payment/create", { method: "POST" });
+      if (!res.ok) {
+        console.error("Create payment failed", await res.text());
+        return;
+      }
+      const { token } = await res.json();
+      // @ts-expect-error injected by Script
+      window.snap.pay(token, {
+        onSuccess: () => {
+          fetchCart();
+        },
+        onPending: () => {},
+        onError: (e: any) => {
+          console.error("pay error", e);
+        },
+        onClose: () => {},
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setPaying(false);
+    }
+  };
+
   if (loading) {
     return (
       <main className="min-h-screen bg-gradient-to-b from-white via-emerald-50/40 to-white text-foreground">
@@ -145,6 +174,15 @@ export default function CartPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-white via-emerald-50/40 to-white text-foreground">
+      <Script
+        src={
+          process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true"
+            ? "https://app.midtrans.com/snap/snap.js"
+            : "https://app.sandbox.midtrans.com/snap/snap.js"
+        }
+        data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
+        strategy="afterInteractive"
+      />
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">Your Cart</h1>
         {cart.items.length === 0 ? (
@@ -235,7 +273,13 @@ export default function CartPage() {
               <p className="text-xl font-semibold">
                 Total: Rp {cart.total.toLocaleString()}
               </p>
-              <Button className="mt-4">Checkout</Button>
+              <Button
+                className="mt-4"
+                onClick={handleCheckout}
+                disabled={paying}
+              >
+                {paying ? "Processing..." : "Checkout"}
+              </Button>
             </div>
           </>
         )}

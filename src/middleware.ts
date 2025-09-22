@@ -4,6 +4,10 @@ import { verifyToken } from "./db/helpers/jwt";
 import errorHandler from "./helpers/errorHandler";
 
 export async function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname === "/api/payment/notification") {
+    return NextResponse.next(); // bebas auth
+  }
+
   const cookieStore = await cookies();
   const auth = cookieStore.get("Authorization")?.value;
 
@@ -15,13 +19,6 @@ export async function middleware(request: NextRequest) {
   }
 
   if (request.nextUrl.pathname === "/profile") {
-    if (!auth) {
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
-    return NextResponse.next();
-  }
-
-  if (request.nextUrl.pathname.startsWith("/plants")) {
     if (!auth) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
@@ -88,6 +85,24 @@ export async function middleware(request: NextRequest) {
       return errorHandler(err);
     }
   }
+
+  // Protect create payment -> inject x-user-id
+  if (request.nextUrl.pathname === "/api/payment/create") {
+    try {
+      if (!auth) throw { message: "Please login first", status: 401 };
+      const [type, token] = auth.split(" ");
+      if (type !== "Bearer" || !token)
+        throw { message: "Invalid token", status: 401 };
+
+      const decodedToken = verifyToken(token) as { id: string; role: string };
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set("x-user-id", decodedToken.id);
+      requestHeaders.set("x-user-role", decodedToken.role);
+      return NextResponse.next({ request: { headers: requestHeaders } });
+    } catch {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+  }
 }
 
 export const config = {
@@ -97,6 +112,7 @@ export const config = {
     "/login",
     "/api/cart",
     "/profile",
-  ], // Tambahkan /profile
+    "/api/payment/:path*", // penting: tambahkan
+  ],
   runtime: "nodejs",
 };
