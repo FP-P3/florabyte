@@ -28,7 +28,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import Image from "next/image";
-import { PlantData } from "@/types/types";
+import type { PlantData } from "@/types/types";
 
 type ScanState = "upload" | "preview" | "scanning" | "results";
 
@@ -211,31 +211,31 @@ export default function PlantScannerPage() {
 
   if (scanState === "upload") {
     return (
-      <div className="min-h-screen bg-background p-4">
+      <div className="min-h-screen bg-background p-4 animate-fadeIn">
         <div className="mx-auto max-w-md">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4 transition-all duration-200 hover:bg-primary/15">
               <Leaf className="h-8 w-8 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold text-balance mb-2">
+            <h1 className="text-2xl font-heading font-semibold text-balance mb-2">
               Plant Scanner
             </h1>
-            <p className="text-muted-foreground text-pretty">
+            <p className="text-muted-foreground text-pretty text-[15px] tracking-[0.01em] leading-relaxed">
               Upload a photo of your plant to get instant identification and
               care instructions
             </p>
           </div>
 
-          <Card>
+          <Card className="rounded-xl florabyte-card-shadow transition-all duration-200 hover:ring-1 hover:ring-black/5">
             <CardContent className="p-6">
               <div
-                className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 transition-all duration-200 cursor-pointer hover:bg-accent/30"
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 onClick={() => fileInputRef.current?.click()}
               >
-                <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-sm text-muted-foreground mb-2">
+                <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4 transition-all duration-200" />
+                <p className="text-[15px] text-muted-foreground mb-2 tracking-[0.01em]">
                   Drag and drop your plant photo here, or click to browse
                 </p>
                 <p className="text-xs text-muted-foreground">
@@ -255,6 +255,7 @@ export default function PlantScannerPage() {
                 <Button
                   variant="outline"
                   size="sm"
+                  className="transition-all duration-200 hover:ring-1 hover:ring-black/5 bg-transparent"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <Camera className="h-4 w-4 mr-2" />
@@ -263,6 +264,7 @@ export default function PlantScannerPage() {
                 <Button
                   variant="outline"
                   size="sm"
+                  className="transition-all duration-200 hover:ring-1 hover:ring-black/5 bg-transparent"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <Upload className="h-4 w-4 mr-2" />
@@ -272,9 +274,9 @@ export default function PlantScannerPage() {
             </CardContent>
           </Card>
 
-          <Alert className="mt-4">
-            <Leaf className="h-4 w-4" />
-            <AlertDescription>
+          <Alert className="mt-4 rounded-xl border-primary/20 bg-primary/5">
+            <Leaf className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-[15px] tracking-[0.01em]">
               For best results, ensure your plant is well-lit and the entire
               plant or leaf is visible in the photo.
             </AlertDescription>
@@ -286,17 +288,21 @@ export default function PlantScannerPage() {
 
   if (scanState === "preview") {
     return (
-      <div className="min-h-screen bg-background p-4">
+      <div className="min-h-screen bg-background p-4 animate-fadeIn">
         <div className="mx-auto max-w-md">
           {error && (
-            <Alert variant="destructive" className="mb-4">
+            <Alert variant="destructive" className="mb-4 rounded-xl">
               <AlertDescription>
                 <div className="space-y-2">
-                  <p className="font-medium">{error.title}</p>
+                  <p className="font-medium text-[15px] tracking-[0.01em]">
+                    {error.title}
+                  </p>
                   {error.notes?.length ? (
                     <ul className="list-disc pl-5 text-sm">
                       {error.notes.map((n, i) => (
-                        <li key={i}>{n}</li>
+                        <li key={i} className="text-[15px] tracking-[0.01em]">
+                          {n}
+                        </li>
                       ))}
                     </ul>
                   ) : null}
@@ -306,15 +312,17 @@ export default function PlantScannerPage() {
           )}
 
           <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold mb-2">Preview Your Plant</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl font-heading font-semibold mb-2">
+              Preview Your Plant
+            </h1>
+            <p className="text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed">
               Make sure the plant is clearly visible in the image
             </p>
           </div>
 
-          <Card className="mb-6">
+          <Card className="mb-6 rounded-xl florabyte-card-shadow">
             <CardContent className="p-4">
-              <div className="aspect-square rounded-lg overflow-hidden bg-muted mb-4">
+              <div className="aspect-square rounded-xl overflow-hidden bg-muted mb-4">
                 <Image
                   src={previewUrl || "/placeholder.svg"}
                   alt="Plant preview"
@@ -323,17 +331,24 @@ export default function PlantScannerPage() {
                   height={400}
                 />
               </div>
-              <p className="text-sm text-muted-foreground text-center">
+              <p className="text-sm text-muted-foreground text-center text-[15px] tracking-[0.01em]">
                 {selectedFile?.name}
               </p>
             </CardContent>
           </Card>
 
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={retakeScanner}>
+            <Button
+              variant="outline"
+              onClick={retakeScanner}
+              className="transition-all duration-200 hover:ring-1 hover:ring-black/5 bg-transparent"
+            >
               Retake
             </Button>
-            <Button onClick={startScanning}>
+            <Button
+              onClick={startScanning}
+              className="transition-all duration-200"
+            >
               <Leaf className="h-4 w-4 mr-2" />
               Scan Plant
             </Button>
@@ -345,20 +360,22 @@ export default function PlantScannerPage() {
 
   if (scanState === "scanning") {
     return (
-      <div className="min-h-screen bg-background p-4 flex items-center justify-center">
+      <div className="min-h-screen bg-background p-4 flex items-center justify-center animate-fadeIn">
         <div className="mx-auto max-w-md text-center">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-primary/10 rounded-full mb-6 animate-pulse">
             <Leaf className="h-10 w-10 text-primary animate-bounce" />
           </div>
 
-          <h2 className="text-2xl font-bold mb-2">Analyzing Your Plant</h2>
-          <p className="text-muted-foreground mb-8">
+          <h2 className="text-2xl font-heading font-semibold mb-2">
+            Analyzing Your Plant
+          </h2>
+          <p className="text-muted-foreground mb-8 text-[15px] tracking-[0.01em] leading-relaxed">
             Our AI is identifying your plant and preparing care instructions...
           </p>
 
           <div className="space-y-4">
             <Progress value={scanProgress} className="w-full" />
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em]">
               {Math.round(scanProgress)}% complete
             </p>
           </div>
@@ -369,24 +386,26 @@ export default function PlantScannerPage() {
 
   if (scanState === "results" && plantData) {
     return (
-      <div className="min-h-screen bg-background p-4">
+      <div className="min-h-screen bg-background p-4 animate-fadeIn">
         <div className="mx-auto max-w-2xl">
           <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full mb-4">
               <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
-            <h1 className="text-2xl font-bold mb-2">Plant Identified!</h1>
-            <Badge variant="secondary" className="mb-2">
+            <h1 className="text-2xl font-heading font-semibold mb-2">
+              Plant Identified!
+            </h1>
+            <Badge variant="secondary" className="mb-2 rounded-full">
               {Math.round(plantData.ai.confidence * 100)}% confidence
             </Badge>
           </div>
 
           <div className="space-y-6">
-            <Card>
+            <Card className="rounded-xl florabyte-card-shadow">
               <CardContent className="p-6">
                 <div className="flex flex-col md:flex-row gap-6">
                   <div className="flex-shrink-0">
-                    <div className="aspect-square w-full md:w-48 rounded-lg overflow-hidden bg-muted">
+                    <div className="aspect-square w-full md:w-48 rounded-xl overflow-hidden bg-muted">
                       <Image
                         src={previewUrl || "/placeholder.svg"}
                         alt="Scanned plant"
@@ -397,22 +416,26 @@ export default function PlantScannerPage() {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <h2 className="text-2xl font-bold text-balance mb-2">
+                    <h2 className="text-2xl font-heading font-semibold text-balance mb-2">
                       {plantData.ai.label.commonName}
                     </h2>
-                    <p className="text-lg text-muted-foreground italic mb-4">
+                    <p className="text-lg text-muted-foreground italic mb-4 text-[15px] tracking-[0.01em]">
                       {plantData.ai.label.scientificName}
                     </p>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="font-medium">Genus:</span>
-                        <p className="text-muted-foreground">
+                        <span className="font-medium text-[15px] tracking-[0.01em]">
+                          Genus:
+                        </span>
+                        <p className="text-muted-foreground text-[15px] tracking-[0.01em]">
                           {plantData.ai.label.genus}
                         </p>
                       </div>
                       <div>
-                        <span className="font-medium">Family:</span>
-                        <p className="text-muted-foreground">
+                        <span className="font-medium text-[15px] tracking-[0.01em]">
+                          Family:
+                        </span>
+                        <p className="text-muted-foreground text-[15px] tracking-[0.01em]">
                           {plantData.ai.label.family}
                         </p>
                       </div>
@@ -423,20 +446,20 @@ export default function PlantScannerPage() {
             </Card>
 
             {/* Care Instructions */}
-            <Card>
+            <Card className="rounded-xl florabyte-card-shadow">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 font-heading font-semibold">
                   <Sun className="h-5 w-5" />
                   Care Instructions
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                  <h4 className="font-medium mb-2 flex items-center gap-2 text-[15px] tracking-[0.01em]">
                     <Sun className="h-4 w-4" />
                     Light Requirements
                   </h4>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed">
                     {plantData.ai.care.light}
                   </p>
                 </div>
@@ -444,11 +467,11 @@ export default function PlantScannerPage() {
                 <Separator />
 
                 <div>
-                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                  <h4 className="font-medium mb-2 flex items-center gap-2 text-[15px] tracking-[0.01em]">
                     <Droplets className="h-4 w-4" />
                     Watering
                   </h4>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed">
                     {plantData.ai.care.water}
                   </p>
                 </div>
@@ -456,8 +479,10 @@ export default function PlantScannerPage() {
                 <Separator />
 
                 <div>
-                  <h4 className="font-medium mb-2">Soil Requirements</h4>
-                  <p className="text-sm text-muted-foreground">
+                  <h4 className="font-medium mb-2 text-[15px] tracking-[0.01em]">
+                    Soil Requirements
+                  </h4>
+                  <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed">
                     {plantData.ai.care.soil}
                   </p>
                 </div>
@@ -465,13 +490,13 @@ export default function PlantScannerPage() {
             </Card>
 
             {/* Care Schedule */}
-            <Card>
+            <Card className="rounded-xl florabyte-card-shadow">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 font-heading font-semibold">
                   <Clock className="h-5 w-5" />
                   Care Schedule
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-[15px] tracking-[0.01em]">
                   Follow this schedule to keep your plant healthy
                 </CardDescription>
               </CardHeader>
@@ -480,7 +505,7 @@ export default function PlantScannerPage() {
                   {plantData.ai.schedule.map((item, index) => (
                     <div
                       key={index}
-                      className="flex items-start gap-3 p-3 rounded-lg bg-muted/50"
+                      className="flex items-start gap-3 p-3 rounded-xl bg-muted/50 transition-all duration-200 hover:bg-muted/70"
                     >
                       <div
                         className={`p-2 rounded-full ${getScheduleColor(
@@ -491,15 +516,18 @@ export default function PlantScannerPage() {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium capitalize">
+                          <span className="font-medium capitalize text-[15px] tracking-[0.01em]">
                             {item.type}
                           </span>
-                          <Badge variant="outline" className="text-xs">
+                          <Badge
+                            variant="outline"
+                            className="text-xs rounded-full"
+                          >
                             Every {item.intervalDays} day
                             {item.intervalDays > 1 ? "s" : ""}
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed">
                           {item.notes}
                         </p>
                       </div>
@@ -510,10 +538,12 @@ export default function PlantScannerPage() {
             </Card>
 
             {/* Planting Instructions */}
-            <Card>
+            <Card className="rounded-xl florabyte-card-shadow">
               <CardHeader>
-                <CardTitle>Planting Instructions</CardTitle>
-                <CardDescription>
+                <CardTitle className="font-heading font-semibold">
+                  Planting Instructions
+                </CardTitle>
+                <CardDescription className="text-[15px] tracking-[0.01em]">
                   {plantData.ai.plantingPlan.medium} •{" "}
                   {plantData.ai.plantingPlan.potSize}
                 </CardDescription>
@@ -525,7 +555,9 @@ export default function PlantScannerPage() {
                       <span className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium">
                         {index + 1}
                       </span>
-                      <p className="text-sm text-muted-foreground">{step}</p>
+                      <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed">
+                        {step}
+                      </p>
                     </li>
                   ))}
                 </ol>
@@ -533,9 +565,9 @@ export default function PlantScannerPage() {
             </Card>
 
             {/* Supplies Needed */}
-            <Card>
+            <Card className="rounded-xl florabyte-card-shadow">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 font-heading font-semibold">
                   <Package className="h-5 w-5" />
                   Supplies Needed
                 </CardTitle>
@@ -545,10 +577,12 @@ export default function PlantScannerPage() {
                   {plantData.ai.care.suppliesNeeded.map((supply, index) => (
                     <div
                       key={index}
-                      className="flex items-center gap-2 p-2 rounded bg-muted/50"
+                      className="flex items-center gap-2 p-2 rounded-xl bg-muted/50 transition-all duration-200 hover:bg-muted/70"
                     >
                       <Package className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{supply}</span>
+                      <span className="text-sm text-[15px] tracking-[0.01em]">
+                        {supply}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -557,16 +591,20 @@ export default function PlantScannerPage() {
 
             {/* Important Notes */}
             {plantData.ai.notes.length > 0 && (
-              <Card>
+              <Card className="rounded-xl florabyte-card-shadow">
                 <CardHeader>
-                  <CardTitle>Important Notes</CardTitle>
+                  <CardTitle className="font-heading font-semibold">
+                    Important Notes
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
                     {plantData.ai.notes.map((note, index) => (
                       <li key={index} className="flex gap-2 text-sm">
                         <span className="text-accent">•</span>
-                        <span className="text-muted-foreground">{note}</span>
+                        <span className="text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed">
+                          {note}
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -576,10 +614,17 @@ export default function PlantScannerPage() {
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-3 pt-4">
-              <Button variant="outline" onClick={resetScanner}>
+              <Button
+                variant="outline"
+                onClick={resetScanner}
+                className="transition-all duration-200 hover:ring-1 hover:ring-black/5 bg-transparent"
+              >
                 Scan Another Plant
               </Button>
-              <Button className="hover: cursor-pointer" onClick={submitHandler}>
+              <Button
+                className="hover: cursor-pointer transition-all duration-200"
+                onClick={submitHandler}
+              >
                 Save to My Plants
               </Button>
             </div>
