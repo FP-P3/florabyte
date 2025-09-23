@@ -14,7 +14,10 @@ export default function ProductCard({ product, onAddToCart }: Props) {
   const id = product?._id?.toString?.() || product?.id || "";
   const name = product?.name || "Unnamed product";
   const img =
-    product?.imgUrl || product?.imageUrl || product?.image || "/placeholder.png";
+    product?.imgUrl ||
+    product?.imageUrl ||
+    product?.image ||
+    "/placeholder.png";
   const slug = product?.slug || "";
   const price = Number(product?.price ?? 0);
   const sold = Number(product?.sold ?? product?.soldCount ?? 0);

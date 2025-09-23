@@ -297,50 +297,6 @@ export default function PlantDashboard() {
 
       <div className="mx-auto max-w-7xl">
         <div className="flex">
-          {/* Sidebar desktop */}
-          <aside className="hidden md:block w-64 bg-sidebar border-r border-sidebar-border p-6">
-            <div className="flex items-center gap-2 mb-8">
-              <Leaf className="h-8 w-8 text-primary" />
-              <h1 className="text-xl font-bold text-sidebar-foreground">
-                My Plants
-              </h1>
-            </div>
-            <nav className="space-y-2">
-              <Button
-                variant={activeNav === "dashboard" ? "default" : "ghost"}
-                className="w-full justify-start gap-3"
-                onClick={() => setActiveNav("dashboard")}
-              >
-                <Leaf className="h-4 w-4" />
-                Dashboard
-              </Button>
-              <Button
-                variant={activeNav === "scan" ? "default" : "ghost"}
-                className="w-full justify-start gap-3"
-                onClick={() => setActiveNav("scan")}
-              >
-                <Camera className="h-4 w-4" />
-                Scan
-              </Button>
-              <Button
-                variant={activeNav === "plants" ? "default" : "ghost"}
-                className="w-full justify-start gap-3"
-                onClick={() => setActiveNav("plants")}
-              >
-                <Leaf className="h-4 w-4" />
-                My Plants
-              </Button>
-              <Button
-                variant={activeNav === "schedule" ? "default" : "ghost"}
-                className="w-full justify-start gap-3"
-                onClick={() => setActiveNav("schedule")}
-              >
-                <Calendar className="h-4 w-4" />
-                Schedule
-              </Button>
-            </nav>
-          </aside>
-
           {/* Main */}
           <main className="flex-1 p-4 md:p-6">
             {/* Desktop header + Add Plant */}
