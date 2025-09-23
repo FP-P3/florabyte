@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import ProductCard from "@/components/ProductCard";
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react"; // Import ikon
 
 type Product = any;
 
@@ -197,11 +198,12 @@ export default function ProductsPage() {
         {pages > 1 && (
           <div className="mt-8 flex items-center justify-center gap-2">
             <button
-              className="px-3 py-2 rounded border disabled:opacity-50"
+              className="h-10 w-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1 || loading}
+              aria-label="Previous Page"
             >
-              Prev
+              <ChevronLeft className="h-5 w-5" />
             </button>
             {Array.from({ length: pages }).map((_, i) => {
               const p = i + 1;
@@ -218,10 +220,10 @@ export default function ProductsPage() {
                   <button
                     key={p}
                     onClick={() => setPage(p)}
-                    className={`px-3 py-2 rounded border ${
+                    className={`h-10 w-10 rounded-full font-semibold transition-all ${
                       isActive
-                        ? "bg-emerald-600 text-white border-emerald-600"
-                        : "bg-white hover:bg-gray-100"
+                        ? "bg-emerald-600 text-white scale-110 shadow-lg shadow-emerald-500/30"
+                        : "bg-white hover:bg-gray-100 hover:border-gray-300 border border-transparent"
                     }`}
                     disabled={loading}
                   >
@@ -231,7 +233,10 @@ export default function ProductsPage() {
               }
               if (p === page - 2 || p === page + 2) {
                 return (
-                  <span key={`dots-${p}`} className="px-2">
+                  <span
+                    key={`dots-${p}`}
+                    className="h-10 w-10 flex items-center justify-center text-gray-500"
+                  >
                     …
                   </span>
                 );
@@ -239,11 +244,12 @@ export default function ProductsPage() {
               return null;
             })}
             <button
-              className="px-3 py-2 rounded border disabled:opacity-50"
+              className="h-10 w-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => setPage((p) => Math.min(pages, p + 1))}
               disabled={page === pages || loading}
+              aria-label="Next Page"
             >
-              Next
+              <ChevronRight className="h-5 w-5" />
             </button>
           </div>
         )}
