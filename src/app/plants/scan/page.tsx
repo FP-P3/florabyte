@@ -26,6 +26,7 @@ import {
   Eye,
   Package,
   CheckCircle,
+  Layers,
 } from "lucide-react";
 import Image from "next/image";
 import type { PlantData, ProductRecommendation } from "@/types/types";
@@ -150,6 +151,75 @@ export default function PlantScannerPage() {
   };
 
   // no add-to-cart here; recommended carousel links directly to product detail
+  const careText = (val: unknown): string => {
+    if (typeof val === "string") return val;
+    if (
+      typeof val === "object" &&
+      val !== null &&
+      "explanation" in (val as Record<string, unknown>)
+    ) {
+      const v = val as { explanation?: unknown };
+      return typeof v.explanation === "string" ? v.explanation : "";
+    }
+    return "";
+  };
+
+  const careLevel = (val: unknown): string | null => {
+    if (
+      typeof val === "object" &&
+      val !== null &&
+      "level" in (val as Record<string, unknown>)
+    ) {
+      const v = val as { level?: unknown };
+      if (typeof v.level === "string") return v.level.toLowerCase();
+    }
+    return null;
+  };
+
+  const careLevelIcon = (
+    kind: "light" | "water" | "soil",
+    level: string | null
+  ) => {
+    const lvl = (level || "").toLowerCase();
+    if (kind === "light") {
+      const color =
+        lvl === "high"
+          ? "text-amber-600"
+          : lvl === "moderate" || lvl === "medium"
+          ? "text-amber-500"
+          : lvl === "low"
+          ? "text-amber-400"
+          : "text-amber-500";
+      return <Sun className={`h-4 w-4 ${color}`} />;
+    }
+    if (kind === "water") {
+      const color =
+        lvl === "high"
+          ? "text-blue-700"
+          : lvl === "moderate" || lvl === "medium"
+          ? "text-blue-500"
+          : lvl === "low"
+          ? "text-blue-400"
+          : "text-blue-500";
+      return <Droplets className={`h-4 w-4 ${color}`} />;
+    }
+    const soilColor = lvl.includes("drain")
+      ? "text-emerald-600"
+      : "text-emerald-500";
+    return <Layers className={`h-4 w-4 ${soilColor}`} />;
+  };
+
+  const careLevelLabel = (
+    kind: "light" | "water" | "soil",
+    level: string | null
+  ): string | null => {
+    if (!level) return null;
+    const lvl = level.toLowerCase();
+    if (kind === "light") {
+      if (lvl === "high" || lvl.includes("full")) return "full sun";
+    }
+    return level;
+  };
 
   const getScheduleIcon = (type: string) => {
     switch (type) {
@@ -181,6 +251,22 @@ export default function PlantScannerPage() {
     }
   };
 
+  const formatInterval = (days: number) => {
+    if (days >= 365) {
+      const years = Math.round(days / 365);
+      return `${years} year${years > 1 ? "s" : ""}`;
+    }
+    if (days >= 30) {
+      const months = Math.round(days / 30);
+      return `${months} month${months > 1 ? "s" : ""}`;
+    }
+    if (days >= 7) {
+      const weeks = Math.round(days / 7);
+      return `${weeks} week${weeks > 1 ? "s" : ""}`;
+    }
+    return `${days} day${days > 1 ? "s" : ""}`;
+  };
+
   const submitHandler = async () => {
     if (!plantData) return;
 
@@ -198,6 +284,9 @@ export default function PlantScannerPage() {
           care: plantData.ai.care,
           schedule: plantData.ai.schedule,
           notes: plantData.ai.notes,
+          recommendedProducts: Array.isArray(plantData.productRecommendations)
+            ? plantData.productRecommendations
+            : [],
         })
       );
       const res = await fetch("/api/plants/add", {
@@ -463,9 +552,29 @@ export default function PlantScannerPage() {
                   <h4 className="font-medium mb-2 flex items-center gap-2 text-[15px] tracking-[0.01em]">
                     <Sun className="h-4 w-4" />
                     Light Requirements
+                    {careLevelLabel(
+                      "light",
+                      careLevel(plantData.ai.care.light as unknown)
+                    ) && (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] leading-4 px-1.5 py-0 capitalize"
+                      >
+                        {careLevelLabel(
+                          "light",
+                          careLevel(plantData.ai.care.light as unknown)
+                        )}
+                      </Badge>
+                    )}
                   </h4>
-                  <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed">
-                    {plantData.ai.care.light}
+                  <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed flex items-start gap-2">
+                    <span className="mt-0.5">
+                      {careLevelIcon(
+                        "light",
+                        careLevel(plantData.ai.care.light as unknown)
+                      )}
+                    </span>
+                    <span>{careText(plantData.ai.care.light as unknown)}</span>
                   </p>
                 </div>
 
@@ -475,20 +584,60 @@ export default function PlantScannerPage() {
                   <h4 className="font-medium mb-2 flex items-center gap-2 text-[15px] tracking-[0.01em]">
                     <Droplets className="h-4 w-4" />
                     Watering
+                    {careLevelLabel(
+                      "water",
+                      careLevel(plantData.ai.care.water as unknown)
+                    ) && (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] leading-4 px-1.5 py-0 capitalize"
+                      >
+                        {careLevelLabel(
+                          "water",
+                          careLevel(plantData.ai.care.water as unknown)
+                        )}
+                      </Badge>
+                    )}
                   </h4>
-                  <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed">
-                    {plantData.ai.care.water}
+                  <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed flex items-start gap-2">
+                    <span className="mt-0.5">
+                      {careLevelIcon(
+                        "water",
+                        careLevel(plantData.ai.care.water as unknown)
+                      )}
+                    </span>
+                    <span>{careText(plantData.ai.care.water as unknown)}</span>
                   </p>
                 </div>
 
                 <Separator />
 
                 <div>
-                  <h4 className="font-medium mb-2 text-[15px] tracking-[0.01em]">
-                    Soil Requirements
+                  <h4 className="font-medium mb-2 text-[15px] tracking-[0.01em] flex items-center gap-2">
+                    <span>Soil Requirements</span>
+                    {careLevelLabel(
+                      "soil",
+                      careLevel(plantData.ai.care.soil as unknown)
+                    ) && (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] leading-4 px-1.5 py-0 capitalize"
+                      >
+                        {careLevelLabel(
+                          "soil",
+                          careLevel(plantData.ai.care.soil as unknown)
+                        )}
+                      </Badge>
+                    )}
                   </h4>
-                  <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed">
-                    {plantData.ai.care.soil}
+                  <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed flex items-start gap-2">
+                    <span className="mt-0.5">
+                      {careLevelIcon(
+                        "soil",
+                        careLevel(plantData.ai.care.soil as unknown)
+                      )}
+                    </span>
+                    <span>{careText(plantData.ai.care.soil as unknown)}</span>
                   </p>
                 </div>
               </CardContent>
@@ -528,8 +677,7 @@ export default function PlantScannerPage() {
                             variant="outline"
                             className="text-xs rounded-full"
                           >
-                            Every {item.intervalDays} day
-                            {item.intervalDays > 1 ? "s" : ""}
+                            Every {formatInterval(item.intervalDays)}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed">

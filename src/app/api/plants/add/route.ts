@@ -1,7 +1,13 @@
 import { PlantModel } from "@/db/models/plantModel";
 import cloudinary from "@/db/config/cloudinary";
 import { UploadApiResponse } from "cloudinary";
-import type { PlantingPlan, Care, EmptyObj, ScheduleItem } from "@/types/types";
+import type {
+  PlantingPlan,
+  Care,
+  EmptyObj,
+  ScheduleItem,
+  ProductRecommendation,
+} from "@/types/types";
 
 type SavePayload = {
   label: Record<string, unknown>;
@@ -10,6 +16,7 @@ type SavePayload = {
   care: Care | EmptyObj;
   schedule: ScheduleItem[];
   notes: string[];
+  recommendedProducts?: ProductRecommendation[];
 };
 
 export async function POST(req: Request) {
@@ -44,7 +51,15 @@ export async function POST(req: Request) {
       });
     }
 
-    const { label, part, plantingPlan, care, schedule, notes } = payload;
+    const {
+      label,
+      part,
+      plantingPlan,
+      care,
+      schedule,
+      notes,
+      recommendedProducts,
+    } = payload;
 
     // Upload image to Cloudinary now (on save)
     const arrayBuf = await file.arrayBuffer();
@@ -75,6 +90,7 @@ export async function POST(req: Request) {
       care,
       schedule,
       notes,
+      recommendedProducts ?? [],
       userId
     );
 
