@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import ProductCard from "@/components/ProductCard";
+import Link from "next/link";
 
 type Product = any;
 
@@ -178,11 +179,13 @@ export default function ProductsPage() {
             </div>
           ) : (
             products.map((product: any, index: number) => (
-              <ProductCard
+              <Link
                 key={product._id || index}
-                product={product}
-                onAddToCart={handleAddToCart}
-              />
+                href={`/products/${product.slug}`}
+                className="block"
+              >
+                <ProductCard product={product} onAddToCart={handleAddToCart} />
+              </Link>
             ))
           )}
         </div>

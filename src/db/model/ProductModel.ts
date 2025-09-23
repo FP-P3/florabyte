@@ -3,6 +3,7 @@ import { db } from "../config/mongodb";
 import { ObjectId } from "mongodb";
 import { ProductType } from "@/types/ProductType";
 import { GoogleGenAI } from "@google/genai";
+import { toSlug } from "@/lib/slug";
 
 const productSchema = z.object({
   name: z
@@ -170,8 +171,14 @@ class ProductModel {
       db.collection("Products").countDocuments(filter),
     ]);
 
+    // Tambah field slug secara on-the-fly (tidak mengubah DB)
+    const itemsWithSlug = items.map((it: any) => {
+      const id = (it._id as ObjectId).toString();
+      return { ...it, slug: toSlug(it.name || "product", id) };
+    });
+
     const pages = Math.max(1, Math.ceil(total / pageSize));
-    return { items, total, page, pages, pageSize };
+    return { items: itemsWithSlug, total, page, pages, pageSize };
   }
 }
 
