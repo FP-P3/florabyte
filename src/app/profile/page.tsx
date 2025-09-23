@@ -189,151 +189,152 @@ export default function Profile() {
   if (!user) return <p className="p-6 text-center">User tidak ditemukan.</p>;
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
-      <h1 className="text-3xl font-semibold mb-2">Profil Akun</h1>
+    <div className="max-w-5xl mx-auto p-6 space-y-10">
+      {/* Header Card */}
+      <div className="flex flex-col gap-6">
+        <div className="flex items-start justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">Profil Akun</h1>
+            <p className="text-sm text-muted-foreground mt-1">Kelola identitas & keterhubungan akun Anda.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => window.location.reload()}
+              className="h-9 px-4 rounded-md border bg-white text-sm hover:bg-gray-50 shadow-sm"
+            >
+              Refresh
+            </button>
+            <button
+              onClick={handleLogout}
+              className="h-9 px-4 rounded-md bg-red-500 text-white text-sm font-medium shadow hover:bg-red-600 transition"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
 
-      <div className="bg-white/80 backdrop-blur border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="p-6 flex flex-col md:flex-row gap-8">
-          <div className="flex flex-col items-center md:w-56">
-            <AvatarDisplay
-              name={user.name}
-              image={(user.profilePicture || (session?.user as any)?.image) as string | undefined}
-              googleLinked={!!user.googleId}
-            />
-            <div className="mt-5 flex flex-col gap-2 w-full">
-              <button
-                onClick={handleLogout}
-                className="w-full bg-red-500 hover:bg-red-600 text-white text-xs px-4 py-2 rounded shadow-sm transition"
-              >
-                Logout
-              </button>
+        <div className="grid lg:grid-cols-[220px_1fr] gap-8 items-start">
+          {/* Avatar + Social Actions */}
+          <div className="flex flex-col gap-6">
+            <div className="p-4 rounded-xl border bg-white shadow-sm flex flex-col items-center">
+              <AvatarDisplay
+                name={user.name}
+                image={(user.profilePicture || (session?.user as any)?.image) as string | undefined}
+                googleLinked={!!user.googleId}
+              />
+              <p className="mt-3 font-medium text-sm">{user.name}</p>
+              <p className="text-[11px] text-gray-500 font-mono">@{user.username}</p>
+              <div className="mt-4 w-full flex flex-col gap-2">
+                {user.googleId ? (
+                  <button
+                    onClick={handleUnbindGoogle}
+                    disabled={unbindingGoogle}
+                    className="h-9 w-full rounded-md bg-orange-500 text-white text-xs font-medium shadow hover:bg-orange-600 disabled:opacity-50"
+                  >
+                    {unbindingGoogle ? "Memutus..." : "Putuskan Google"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleBindGoogle}
+                    disabled={bindingGoogle}
+                    className="h-9 w-full rounded-md bg-blue-600 text-white text-xs font-medium shadow hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {bindingGoogle ? "Menghubungkan..." : "Hubungkan Google"}
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="rounded-xl border bg-white p-4 shadow-sm space-y-3">
+              <h3 className="text-sm font-semibold tracking-wide">Status Koneksi</h3>
+              <div className="flex items-center gap-2 text-sm">
+                {user.googleId ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 px-3 py-1 text-[11px] font-medium">Terhubung Google</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 text-gray-600 px-3 py-1 text-[11px] font-medium">Belum Terhubung</span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">Menghubungkan akun memudahkan login cepat dan sinkronisasi avatar.</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 flex-1">
-            <Info label="Nama" value={user.name} />
-            <Info label="Username">
-              <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded inline-block">
-                {user.username}
-              </span>
-            </Info>
-            <Info label="Role">
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold ${user.role === "admin"
-                  ? "bg-purple-100 text-purple-700"
-                  : "bg-blue-100 text-blue-700"
-                  }`}
-              >
-                {user.role || "user"}
-              </span>
-            </Info>
-            <Info label="Google Email" value={user.googleEmail || "-"} />
-            <Info label="Status">
-              {user.googleId ? (
-                <span className="text-green-600 text-sm font-medium">✅ Terhubung</span>
-              ) : (
-                <span className="text-gray-500 text-sm">Belum Terhubung</span>
-              )}
-            </Info>
+          {/* Information Card */}
+          <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+            <div className="grid md:grid-cols-2 gap-6 p-6">
+              <Info label="Nama" value={user.name} />
+              <Info label="Username">
+                <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded border border-gray-200 inline-block">
+                  {user.username}
+                </span>
+              </Info>
+              <Info label="Role">
+                <span className={`px-3 py-1 rounded-full text-[11px] font-medium border ${user.role === 'admin'
+                  ? 'bg-purple-50 text-purple-700 border-purple-200'
+                  : 'bg-blue-50 text-blue-700 border-blue-200'}`}>{user.role || 'user'}</span>
+              </Info>
+              <Info label="Google Email" value={user.googleEmail || '-'} />
+              <Info label="Dibuat" value={user.createdAt ? new Date(user.createdAt).toLocaleDateString('id-ID') : '-'} />
+              <Info label="Diperbarui" value={user.updatedAt ? new Date(user.updatedAt).toLocaleDateString('id-ID') : '-'} />
+            </div>
           </div>
-        </div>
-
-        <div className="bg-gray-50/90 backdrop-blur-sm border-t px-6 py-4 flex flex-wrap gap-3">
-          {user.googleId ? (
-            <button
-              onClick={handleUnbindGoogle}
-              disabled={unbindingGoogle}
-              className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white px-4 py-2 rounded text-sm"
-            >
-              {unbindingGoogle ? "Memutus..." : "Putuskan Google"}
-            </button>
-          ) : (
-            <button
-              onClick={handleBindGoogle}
-              disabled={bindingGoogle}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded text-sm"
-            >
-              {bindingGoogle ? "Menghubungkan..." : "Hubungkan Google"}
-            </button>
-          )}
-          <button
-            onClick={() => window.location.reload()}
-            className="text-sm px-4 py-2 rounded border border-gray-300 bg-gray-100 hover:bg-white"
-          >
-            Refresh
-          </button>
         </div>
       </div>
 
-      {/* Riwayat Pembelian */}
-      <section>
-        <h2 className="text-2xl font-semibold mb-4">Riwayat Pembelian</h2>
-        <div className="bg-white/80 backdrop-blur border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-          <div className="max-h-[420px] overflow-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-100 text-left text-[11px] uppercase tracking-wide text-gray-600">
-                <tr>
-                  <th className="py-2 px-3">Tanggal</th>
-                  <th className="py-2 px-3">Order ID</th>
-                  <th className="py-2 px-3">Produk</th>
-                  <th className="py-2 px-3">Status</th>
-                  <th className="py-2 px-3">Payment</th>
-                  <th className="py-2 px-3 text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ordersLoading && (
+      {/* Order History */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <h2 className="text-2xl font-semibold tracking-tight">Riwayat Pembelian</h2>
+          <span className="text-xs text-muted-foreground">{orders.length} order</span>
+        </div>
+        <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+          <div className="relative">
+            <div className="max-h-[460px] overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-left text-[11px] uppercase tracking-wide text-gray-600 border-b">
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-gray-500">
-                      Memuat riwayat...
-                    </td>
+                    <th className="py-3 px-3 font-semibold">Tanggal</th>
+                    <th className="py-3 px-3 font-semibold">Order ID</th>
+                    <th className="py-3 px-3 font-semibold">Produk</th>
+                    <th className="py-3 px-3 font-semibold">Status</th>
+                    <th className="py-3 px-3 font-semibold">Payment</th>
+                    <th className="py-3 px-3 text-right font-semibold">Total</th>
                   </tr>
-                )}
-                {!ordersLoading && !orders.length && (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-gray-500">
-                      Belum ada riwayat pembelian.
-                    </td>
-                  </tr>
-                )}
-                {!ordersLoading &&
-                  orders.map((o) => {
+                </thead>
+                <tbody>
+                  {ordersLoading && (
+                    <tr>
+                      <td colSpan={6} className="py-10 text-center text-gray-500 text-sm">Memuat riwayat...</td>
+                    </tr>
+                  )}
+                  {!ordersLoading && !orders.length && (
+                    <tr>
+                      <td colSpan={6} className="py-10 text-center text-gray-500 text-sm">Belum ada riwayat pembelian.</td>
+                    </tr>
+                  )}
+                  {!ordersLoading && orders.map(o => {
                     const date = new Date(o.createdAt);
-                    const formatted = date.toLocaleDateString("id-ID", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    });
-                    const status = o.status;
-                    const statusStyleMap: Record<string, string> = {
-                      Pending: "bg-gray-200 text-gray-700",
-                      Diproses: "bg-blue-100 text-blue-700",
-                      Dikirim: "bg-yellow-100 text-yellow-700",
-                      Selesai: "bg-green-100 text-green-700",
-                      Dibatalkan: "bg-red-100 text-red-700",
-                    };
-                    const statusClass = statusStyleMap[status] || "bg-gray-100 text-gray-600";
-                    const itemsLabel = o.items
-                      .map((it) => `${it.name}${it.qty > 1 ? ` x${it.qty}` : ""}`)
-                      .join(", ");
-                    const orderId = o.midtransOrderId || o.id || "-";
+                    const formatted = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+                    const itemsLabel = o.items.map(it => `${it.name}${it.qty > 1 ? ` x${it.qty}` : ''}`).join(', ');
+                    const orderId = o.midtransOrderId || o.id || '-';
+                    const statusBadge = badgeColor(o.status);
+                    const paymentBadge = o.paymentStatus === 'paid'
+                      ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                      : 'bg-red-100 text-red-700 border border-red-200';
                     return (
-                      <tr key={orderId} className="border-t border-gray-100">
-                        <td className="py-2 px-3 whitespace-nowrap text-gray-600">{formatted}</td>
-                        <td className="py-2 px-3 font-mono text-[11px] text-gray-500">{orderId.toString().slice(-16)}</td>
-                        <td className="py-2 px-3 max-w-[240px]">
-                          <p className="truncate" title={itemsLabel}>{itemsLabel}</p>
+                      <tr key={orderId} className="border-b last:border-b-0 hover:bg-gray-50/60">
+                        <td className="py-3 px-3 whitespace-nowrap text-gray-600 text-xs">{formatted}</td>
+                        <td className="py-3 px-3 font-mono text-[11px] text-gray-500">{orderId.toString().slice(-16)}</td>
+                        <td className="py-3 px-3 max-w-[280px]">
+                          <p className="truncate text-xs" title={itemsLabel}>{itemsLabel}</p>
                         </td>
-                        <td className="py-2 px-3"><span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${statusClass}`}>{status}</span></td>
-                        <td className="py-2 px-3"><span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${o.paymentStatus === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{o.paymentStatus}</span></td>
-                        <td className="py-2 px-3 text-right font-medium tabular-nums">
-                          {formatIDR(o.total)}
-                        </td>
+                        <td className="py-3 px-3"><span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-medium ${statusBadge}`}>{o.status}</span></td>
+                        <td className="py-3 px-3"><span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-medium ${paymentBadge}`}>{o.paymentStatus}</span></td>
+                        <td className="py-3 px-3 text-right font-medium tabular-nums text-xs">{formatIDR(o.total)}</td>
                       </tr>
-                    );
+                    )
                   })}
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
@@ -417,5 +418,17 @@ function formatIDR(value: number) {
     return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(value);
   } catch {
     return `Rp ${value.toLocaleString("id-ID")}`;
+  }
+}
+
+// Provide consistent badge coloring for order status
+function badgeColor(status: string) {
+  switch (status) {
+    case 'Pending': return 'bg-gray-100 text-gray-700 border border-gray-200';
+    case 'Diproses': return 'bg-blue-100 text-blue-700 border border-blue-200';
+    case 'Dikirim': return 'bg-amber-100 text-amber-700 border border-amber-300';
+    case 'Selesai': return 'bg-emerald-100 text-emerald-700 border border-emerald-200';
+    case 'Dibatalkan': return 'bg-red-100 text-red-700 border border-red-200';
+    default: return 'bg-gray-100 text-gray-600 border border-gray-200';
   }
 }
