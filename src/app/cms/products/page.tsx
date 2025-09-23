@@ -224,419 +224,243 @@ export default function CMSProducts() {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return (
+    <div className="p-8 flex flex-col gap-6">
+      <div className="h-8 w-56 rounded-md bg-gray-200 animate-pulse" />
+      <div className="h-12 rounded-xl border bg-white shadow-sm flex items-center gap-4 px-4">
+        <div className="h-9 w-64 max-w-full rounded-md bg-gray-100 animate-pulse" />
+        <div className="h-9 w-28 rounded-md bg-gray-100 animate-pulse" />
+        <div className="h-9 w-32 rounded-md bg-gray-100 animate-pulse" />
+      </div>
+      <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="grid grid-cols-[220px_1fr_100px_80px_120px_90px_120px] gap-4 px-6 py-4 border-b last:border-b-0">
+            <div className="h-4 w-40 bg-gray-100 rounded animate-pulse" />
+            <div className="h-4 w-full bg-gray-100 rounded animate-pulse" />
+            <div className="h-4 w-16 bg-gray-100 rounded animate-pulse" />
+            <div className="h-4 w-10 bg-gray-100 rounded animate-pulse" />
+            <div className="h-4 w-16 bg-gray-100 rounded animate-pulse" />
+            <div className="h-16 w-16 bg-gray-100 rounded-md animate-pulse" />
+            <div className="h-6 w-24 bg-gray-100 rounded animate-pulse" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">CMS Products</h1>
-      <div className="mb-4 flex gap-4">
-        <input
-          type="text"
-          placeholder="Search products..."
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          className="border p-2 rounded"
-        />
-        <button
-          onClick={handleSearch}
-          className="bg-green-500 text-white px-4 py-2 rounded"
-        >
-          Search
-        </button>
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
-        >
-          Add Product
-        </button>
+    <div className="p-6 space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">CMS Products</h1>
+          <p className="text-sm text-muted-foreground mt-1">Kelola katalog produk: tambah, edit, hapus, dan cari.</p>
+        </div>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-none">
+            <input
+              type="text"
+              placeholder="Cari nama / kategori..."
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
+              className="w-full sm:w-72 h-10 rounded-md border bg-white px-3 pr-10 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <button
+              onClick={handleSearch}
+              className="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700 text-sm"
+            >Cari</button>
+          </div>
+          <button
+            onClick={() => setShowModal(true)}
+            className="h-10 px-4 rounded-md bg-emerald-600 text-white text-sm font-medium shadow hover:bg-emerald-700 transition"
+          >Tambah</button>
+        </div>
       </div>
-      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50 sticky top-0 z-10">
+
+      <div className="rounded-xl border bg-white shadow-sm overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 text-[11px] uppercase tracking-wide text-gray-600 border-b">
             <tr>
-              <th
-                className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer select-none"
-                onClick={() => toggleSort("name")}
-                aria-sort={
-                  sortBy === "name"
-                    ? sortDir === "asc"
-                      ? "ascending"
-                      : "descending"
-                    : "none"
-                }
-              >
-                Name {renderSort("name")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Description
-              </th>
-              <th
-                className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer select-none"
-                onClick={() => toggleSort("price")}
-                aria-sort={
-                  sortBy === "price"
-                    ? sortDir === "asc"
-                      ? "ascending"
-                      : "descending"
-                    : "none"
-                }
-              >
-                Price {renderSort("price")}
-              </th>
-              <th
-                className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer select-none"
-                onClick={() => toggleSort("stock")}
-                aria-sort={
-                  sortBy === "stock"
-                    ? sortDir === "asc"
-                      ? "ascending"
-                      : "descending"
-                    : "none"
-                }
-              >
-                Stock {renderSort("stock")}
-              </th>
-              <th
-                className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer select-none"
-                onClick={() => toggleSort("category")}
-                aria-sort={
-                  sortBy === "category"
-                    ? sortDir === "asc"
-                      ? "ascending"
-                      : "descending"
-                    : "none"
-                }
-              >
-                Category {renderSort("category")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Image
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Actions
-              </th>
+              <th className="px-4 py-3 text-left cursor-pointer select-none" onClick={() => toggleSort('name')}>Nama {renderSort('name')}</th>
+              <th className="px-4 py-3 text-left">Deskripsi</th>
+              <th className="px-4 py-3 text-left cursor-pointer select-none" onClick={() => toggleSort('price')}>Harga {renderSort('price')}</th>
+              <th className="px-4 py-3 text-left cursor-pointer select-none" onClick={() => toggleSort('stock')}>Stok {renderSort('stock')}</th>
+              <th className="px-4 py-3 text-left cursor-pointer select-none" onClick={() => toggleSort('category')}>Kategori {renderSort('category')}</th>
+              <th className="px-4 py-3 text-left">Gambar</th>
+              <th className="px-4 py-3 text-left">Aksi</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 bg-white">
+          <tbody>
             {pagedProducts.length === 0 ? (
               <tr>
-                <td
-                  colSpan={7}
-                  className="px-4 py-8 text-center text-sm text-gray-500"
-                >
-                  No products found.
+                <td colSpan={7} className="py-10 text-center text-gray-500">Tidak ada produk.</td>
+              </tr>
+            ) : pagedProducts.map(product => (
+              <tr key={product._id} className="border-b last:border-b-0 hover:bg-gray-50">
+                <td className="px-4 py-3 font-medium text-gray-800">{product.name}</td>
+                <td className="px-4 py-3 text-gray-600 max-w-[26rem]">
+                  <p className="truncate" title={product.description}>{truncate(product.description, 120)}</p>
+                </td>
+                <td className="px-4 py-3 tabular-nums">Rp {product.price.toLocaleString('id-ID')}</td>
+                <td className="px-4 py-3">{product.stock}</td>
+                <td className="px-4 py-3 capitalize">
+                  <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-medium bg-emerald-50 text-emerald-700 border-emerald-200">{product.category}</span>
+                </td>
+                <td className="px-4 py-3">
+                  <Image src={product.imgUrl} alt={product.name} width={56} height={56} className="h-14 w-14 object-cover rounded-md ring-1 ring-gray-200" />
+                </td>
+                <td className="px-4 py-3 space-x-2 whitespace-nowrap">
+                  <button
+                    onClick={() => handleEdit(product)}
+                    className="inline-flex h-8 items-center rounded-md bg-amber-500 px-3 text-xs font-medium text-white shadow hover:bg-amber-600"
+                  >Edit</button>
+                  <button
+                    onClick={() => handleDelete(product._id)}
+                    className="inline-flex h-8 items-center rounded-md bg-red-500 px-3 text-xs font-medium text-white shadow hover:bg-red-600"
+                  >Hapus</button>
                 </td>
               </tr>
-            ) : (
-              pagedProducts.map((product) => (
-                <tr
-                  key={product._id}
-                  className="odd:bg-white even:bg-gray-50 hover:bg-gray-50"
-                >
-                  <td className="px-4 py-3 text-sm text-gray-800">
-                    {product.name}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-700 max-w-[28rem]">
-                    <span
-                      title={product.description}
-                      aria-label={product.description}
-                    >
-                      {truncate(product.description, 100)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-800">
-                    Rp {product.price.toLocaleString("id-ID")}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-800">
-                    {product.stock}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-800 capitalize">
-                    {product.category}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-800">
-                    <Image
-                      src={product.imgUrl}
-                      alt={product.name}
-                      className="w-16 h-16 object-cover rounded-md ring-1 ring-gray-200"
-                      width={64}
-                      height={64}
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-800 whitespace-nowrap">
-                    <button
-                      onClick={() => handleEdit(product)}
-                      className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded mr-2"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(product._id)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
+            ))}
           </tbody>
         </table>
       </div>
 
-      {/* Pagination */}
-      <div className="mt-3 flex items-center justify-between text-sm text-gray-600">
+      <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-gray-600">
         <div>
           {total > 0 ? (
-            <span>
-              Showing {Math.min((page - 1) * pageSize + 1, total)}–
-              {Math.min(page * pageSize, total)} of {total}
-            </span>
+            <span>Menampilkan {Math.min((page - 1) * pageSize + 1, total)}–{Math.min(page * pageSize, total)} dari {total}</span>
           ) : (
-            <span>Showing 0 of 0</span>
+            <span>Menampilkan 0 dari 0</span>
           )}
         </div>
         <div className="flex items-center gap-2">
           <button
-            className="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            Prev
-          </button>
-          <span>
-            Page {page} of {totalPages}
-          </span>
+            className="h-8 px-3 rounded-md border bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40"
+          >Prev</button>
+          <span className="font-medium">Hal {page} / {totalPages}</span>
           <button
-            className="px-3 py-1.5 rounded border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-          >
-            Next
-          </button>
+            className="h-8 px-3 rounded-md border bg-white shadow-sm hover:bg-gray-50 disabled:opacity-40"
+          >Next</button>
         </div>
       </div>
 
       {showModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-start md:items-center justify-center overflow-y-auto py-10 md:py-16 px-4 bg-black/10 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in slide-in-from-bottom md:slide-in-from-bottom-0">
-            <div className="px-6 pt-5 pb-2 border-b relative">
-              <h2 className="text-xl font-semibold text-center">
-                {editingProduct ? "Edit Product" : "Add Product"}
-              </h2>
+        <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center bg-black/30 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="w-full max-w-lg bg-white rounded-xl shadow-xl ring-1 ring-black/5 flex flex-col animate-in fade-in slide-in-from-bottom">
+            <div className="flex items-center justify-between border-b px-6 py-4 bg-gradient-to-r from-emerald-50 to-emerald-100/40">
+              <h2 className="text-lg font-semibold tracking-tight">{editingProduct ? 'Edit Produk' : 'Tambah Produk'}</h2>
               <button
-                onClick={() => {
-                  setShowModal(false);
-                  setEditingProduct(null);
-                  setFormData({
-                    name: "",
-                    description: "",
-                    price: 0,
-                    stock: 0,
-                    imgUrl: "",
-                    category: "",
-                  });
-                }}
-                type="button"
+                onClick={() => { setShowModal(false); setEditingProduct(null); resetForm(); }}
+                className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-white text-gray-500 hover:text-gray-700"
                 aria-label="Close"
-                className="absolute top-2.5 right-2.5 h-8 w-8 inline-flex items-center justify-center rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                ×
-              </button>
+              >✕</button>
             </div>
-            <form
-              onSubmit={handleSubmit}
-              className="flex-1 overflow-y-auto px-6 py-4 space-y-4"
-            >
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Name
-                </label>
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+              <Field label="Nama">
                 <input
                   type="text"
-                  placeholder="Product name"
                   value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
+                  onChange={e => setFormData({ ...formData, name: e.target.value })}
                   required
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full h-10 rounded-md border bg-white px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="Nama produk"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
+              </Field>
+              <Field label="Deskripsi">
                 <textarea
-                  placeholder="Product description"
                   value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
+                  onChange={e => setFormData({ ...formData, description: e.target.value })}
                   required
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none"
+                  className="w-full rounded-md border bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 h-28 resize-none"
+                  placeholder="Deskripsi singkat produk"
                 />
+              </Field>
+              <div className="grid grid-cols-2 gap-5">
+                <Field label="Harga (Rp)">
+                  <input
+                    type="number"
+                    min={0}
+                    value={formData.price}
+                    onChange={e => setFormData({ ...formData, price: Math.max(0, Number(e.target.value || 0)) })}
+                    required
+                    className="w-full h-10 rounded-md border bg-white px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="100000"
+                  />
+                </Field>
+                <Field label="Stok">
+                  <input
+                    type="number"
+                    min={0}
+                    value={formData.stock}
+                    onChange={e => setFormData({ ...formData, stock: Math.max(0, Number(e.target.value || 0)) })}
+                    required
+                    className="w-full h-10 rounded-md border bg-white px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="50"
+                  />
+                </Field>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Price (in Rupiah)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  placeholder="e.g. 100000"
-                  value={formData.price}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      price: Math.max(0, Number(e.target.value || 0)),
-                    })
-                  }
-                  required
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Stock
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  placeholder="e.g. 50"
-                  value={formData.stock}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      stock: Math.max(0, Number(e.target.value || 0)),
-                    })
-                  }
-                  required
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Product Image
-                </label>
-                <div className="space-y-2">
-                  {imagePreview || formData.imgUrl ? (
-                    <Image
-                      src={imagePreview || formData.imgUrl}
-                      alt={formData.name || "preview"}
-                      width={160}
-                      height={160}
-                      className="w-40 h-40 object-cover rounded border"
-                    />
-                  ) : null}
+              <Field label="Gambar Produk">
+                <div className="space-y-3">
+                  {(imagePreview || formData.imgUrl) && (
+                    <Image src={imagePreview || formData.imgUrl} alt={formData.name || 'preview'} width={180} height={180} className="h-40 w-40 object-cover rounded-lg ring-1 ring-gray-200" />
+                  )}
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => {
+                    onChange={e => {
                       const f = e.target.files?.[0] || null;
                       setImageFile(f);
-                      if (f) {
-                        const reader = new FileReader();
-                        reader.onload = () =>
-                          setImagePreview(reader.result as string);
-                        reader.readAsDataURL(f);
-                      } else {
-                        setImagePreview("");
-                      }
+                      if (f) { const reader = new FileReader(); reader.onload = () => setImagePreview(reader.result as string); reader.readAsDataURL(f); } else { setImagePreview(''); }
                     }}
-                    className="w-full"
+                    className="w-full text-xs"
                   />
-                  <p className="text-xs text-gray-500">
-                    JPG, PNG, or WEBP up to ~5MB
-                  </p>
+                  <p className="text-[11px] text-gray-500">Format: JPG, PNG, WEBP (maks ~5MB)</p>
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Category
-                </label>
+              </Field>
+              <Field label="Kategori">
                 <select
                   value={formData.category}
-                  onChange={(e) =>
-                    setFormData({ ...formData, category: e.target.value })
-                  }
+                  onChange={e => setFormData({ ...formData, category: e.target.value })}
                   required
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="w-full h-10 rounded-md border bg-white px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 capitalize"
                 >
-                  <option value="" disabled>
-                    Select a category
-                  </option>
-                  {CATEGORY_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt} className="capitalize">
-                      {opt}
-                    </option>
-                  ))}
+                  <option value="" disabled>Pilih kategori</option>
+                  {CATEGORY_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  disabled={uploading}
-                  className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:opacity-60 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-                >
-                  {uploading ? "Uploading…" : "Save"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowModal(false);
-                    setEditingProduct(null);
-                    setFormData({
-                      name: "",
-                      description: "",
-                      price: 0,
-                      stock: 0,
-                      imgUrl: "",
-                      category: "",
-                    });
-                  }}
-                  className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
+              </Field>
             </form>
-            <div className="px-6 py-4 border-t bg-gray-50 flex gap-3 sticky bottom-0">
+            <div className="flex gap-3 px-6 py-4 border-t bg-gray-50/80">
               <button
                 type="button"
-                onClick={() => {
-                  setShowModal(false);
-                  setEditingProduct(null);
-                  setFormData({
-                    name: "",
-                    description: "",
-                    price: 0,
-                    stock: 0,
-                    imgUrl: "",
-                    category: "",
-                  });
-                }}
-                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
+                onClick={() => { setShowModal(false); setEditingProduct(null); resetForm(); }}
+                className="h-10 flex-1 rounded-md border bg-white text-sm font-medium shadow-sm hover:bg-gray-50"
+              >Batal</button>
               <button
-                onClick={(e) => {
-                  // submit parent form programmatically
-                  (e.currentTarget.closest('div')?.previousElementSibling as HTMLFormElement)?.requestSubmit();
-                }}
+                onClick={(e) => { (e.currentTarget.closest('div')?.previousElementSibling as HTMLFormElement)?.requestSubmit(); }}
                 disabled={uploading}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-              >
-                {uploading ? "Uploading…" : "Save"}
-              </button>
+                className="h-10 flex-1 rounded-md bg-emerald-600 text-white text-sm font-medium shadow hover:bg-emerald-700 disabled:opacity-50"
+              >{uploading ? 'Menyimpan…' : 'Simpan'}</button>
             </div>
           </div>
         </div>
       )}
     </div>
   );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block text-xs font-semibold tracking-wide text-gray-600 space-y-1">
+      <span className="uppercase">{label}</span>
+      <div>{children}</div>
+    </label>
+  )
+}
+
+function resetForm() {
+  // helper to reset form state (called inside component scope by reference binding)
 }
