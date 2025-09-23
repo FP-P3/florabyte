@@ -131,6 +131,8 @@ export async function POST(request: Request) {
       );
     }
 
+    console.log(aiJson, "<- aiJson");
+
     const ok = !!aiJson?.isPlant && (aiJson?.confidence ?? 0) >= 0.6;
     if (!ok) {
       return new Response(
@@ -185,10 +187,17 @@ export async function POST(request: Request) {
       supplies.length > 0
         ? `Supplies needed for ${species}: ${supplies.join(", ")}`
         : `Supplies for plant care: fertilizer, potting mix, perlite, moisture meter, pruning shears, moss pole`;
-    const queryText =
-      typeof vs?.query === "string" && vs.query.trim().length > 0
-        ? `${baseQuery}. ${vs.query}`
-        : baseQuery;
+    // Build richer embedding text by including AI query and keywords
+    const additions: string[] = [];
+    if (typeof vs?.query === "string" && vs.query.trim().length > 0) {
+      additions.push(vs.query.trim());
+    }
+    if (aiKeywords.length > 0) {
+      additions.push(`Keywords: ${aiKeywords.join(", ")}`);
+    }
+    const queryText = [baseQuery, ...additions].join(". ");
+
+    console.log(queryText, "<- queryText");
 
     // Derive desired categories from AI keywords/supplies (align with Products.category values)
     const deriveCategories = (words: string[]): string[] => {
@@ -214,6 +223,7 @@ export async function POST(request: Request) {
     };
     const categoriesWanted = deriveCategories([...aiKeywords, ...supplies]);
 
+    // AI Embedding for Vector Search
     const embed: EmbedContentResponse = await ai.models.embedContent({
       model: MODEL_EMBED,
       contents: queryText,
@@ -245,7 +255,7 @@ export async function POST(request: Request) {
           index: VECTOR_INDEX,
           path: "embedding",
           queryVector,
-          numCandidates: 400,
+          numCandidates: 30,
           limit: 24,
           filter: filterStrict,
         },
