@@ -47,10 +47,7 @@ function NavButton({
 
 export default function NavbarClient({ isSignedIn }: Props) {
   const [open, setOpen] = useState(false);
-  const [me, setMe] = useState<Pick<
-    UserType,
-    "name" | "profilePicture"
-  > | null>(null);
+  const [me, setMe] = useState<Pick<UserType, "name" | "profilePicture" | "role"> | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -61,7 +58,7 @@ export default function NavbarClient({ isSignedIn }: Props) {
         if (!res.ok) return;
         const data = (await res.json()) as UserType;
         if (!ignore)
-          setMe({ name: data.name, profilePicture: data.profilePicture });
+          setMe({ name: data.name, profilePicture: data.profilePicture, role: (data as any).role });
       } catch {
         // fail silently; we'll show fallback avatar
       }
@@ -76,9 +73,10 @@ export default function NavbarClient({ isSignedIn }: Props) {
 
   const authedExtra = isSignedIn
     ? [
-        { href: "/plants", label: "Dashboard" },
-        { href: "/plants/scan", label: "Scan" },
-      ]
+      { href: "/plants", label: "Dashboard" },
+      { href: "/plants/scan", label: "Scan" },
+      ...(me?.role === 'admin' ? [{ href: "/admin/orders", label: "Admin Orders" }] : []),
+    ]
     : [];
 
   return (

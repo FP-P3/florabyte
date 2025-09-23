@@ -51,6 +51,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Protect /admin routes (admin panel orders)
+  if (request.nextUrl.pathname.startsWith("/admin")) {
+    if (!auth) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    const [type, token] = auth.split(" ");
+    if (type !== "Bearer" || !token) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    const decodedToken = verifyToken(token) as { id: string; role: string };
+    if (decodedToken.role !== "admin") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    return NextResponse.next();
+  }
+
   if (request.nextUrl.pathname.startsWith("/api/cms")) {
     try {
       if (!auth) throw { message: "Please login first", status: 401 };
@@ -149,6 +165,40 @@ export async function middleware(request: NextRequest) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
   }
+
+  // Protect /api/admin/* routes
+  if (request.nextUrl.pathname.startsWith("/api/admin")) {
+    try {
+      if (!auth) throw { message: "Please login first", status: 401 };
+      const [type, token] = auth.split(" ");
+      if (type !== "Bearer" || !token) throw { message: "Invalid token", status: 401 };
+      const decodedToken = verifyToken(token) as { id: string; role: string };
+      if (decodedToken.role !== "admin") throw { message: "Forbidden", status: 403 };
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set("x-user-id", decodedToken.id);
+      requestHeaders.set("x-user-role", decodedToken.role);
+      return NextResponse.next({ request: { headers: requestHeaders } });
+    } catch (err) {
+      return errorHandler(err);
+    }
+  }
+
+  // Protect PATCH status route /api/orders/:id/status (admin only)
+  if (request.nextUrl.pathname.match(/^\/api\/orders\/[A-Za-z0-9]+\/status$/)) {
+    try {
+      if (!auth) throw { message: "Please login first", status: 401 };
+      const [type, token] = auth.split(" ");
+      if (type !== "Bearer" || !token) throw { message: "Invalid token", status: 401 };
+      const decodedToken = verifyToken(token) as { id: string; role: string };
+      if (decodedToken.role !== "admin") throw { message: "Forbidden", status: 403 };
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set("x-user-id", decodedToken.id);
+      requestHeaders.set("x-user-role", decodedToken.role);
+      return NextResponse.next({ request: { headers: requestHeaders } });
+    } catch (err) {
+      return errorHandler(err);
+    }
+  }
 }
 
 export const config = {
@@ -161,6 +211,9 @@ export const config = {
     "/api/payment/:path*",
     "/api/cms/:path*",
     "/cms/:path*",
+    "/admin/:path*",
+    "/api/admin/:path*",
+    "/api/orders/:path*",
   ],
   runtime: "nodejs",
 };

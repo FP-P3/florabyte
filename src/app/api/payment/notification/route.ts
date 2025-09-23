@@ -1,6 +1,7 @@
 export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/config/mongodb";
+import { ObjectId } from "mongodb";
 import * as midtransClient from "midtrans-client";
 // tambahkan import crypto untuk verifikasi signature
 import crypto from "crypto";
@@ -66,10 +67,22 @@ export async function POST(request: NextRequest) {
     else if (["deny", "cancel", "expire"].includes(trx))
       newStatus = "cancelled";
 
-    const res = await db
-      .collection("cart")
-      .updateOne({ midtransOrderId: orderId }, { $set: { status: newStatus } });
-    console.log("Cart update modified:", res.modifiedCount);
+    const cartCollection = db.collection("cart");
+    const cartDoc = await cartCollection.findOne({ midtransOrderId: orderId });
+
+    if (cartDoc) {
+      // Update legacy cart status
+      await cartCollection.updateOne(
+        { _id: cartDoc._id },
+        { $set: { status: newStatus, orderStatus: cartDoc.orderStatus || (newStatus === 'paid' ? 'Pending' : undefined) } }
+      );
+
+      // Only create order when payment success and not migrated before
+      const isPaid = newStatus === "paid";
+      // Tidak lagi membuat snapshot orders collection – cukup gunakan cart + orderStatus.
+    } else {
+      console.warn("Cart not found for midtransOrderId", orderId);
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
