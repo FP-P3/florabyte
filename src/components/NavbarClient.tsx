@@ -47,36 +47,48 @@ function NavButton({
 
 export default function NavbarClient({ isSignedIn }: Props) {
   const [open, setOpen] = useState(false);
-  const [me, setMe] = useState<Pick<UserType, "name" | "profilePicture" | "role"> | null>(null);
+  const [me, setMe] = useState<Pick<
+    UserType,
+    "name" | "profilePicture" | "role"
+  > | null>(null);
 
   useEffect(() => {
     let ignore = false;
     async function loadMe() {
-      if (!isSignedIn) return;
       try {
-        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        // SELALU cek session di client (fallback jika SSR salah)
+        const res = await fetch("/api/auth/me", {
+          cache: "no-store",
+          credentials: "include",
+        });
         if (!res.ok) return;
         const data = (await res.json()) as UserType;
         if (!ignore)
-          setMe({ name: data.name, profilePicture: data.profilePicture, role: (data as any).role });
-      } catch {
-        // fail silently; we'll show fallback avatar
-      }
+          setMe({
+            name: data.name,
+            profilePicture: data.profilePicture,
+            role: (data as any).role,
+          });
+      } catch {}
     }
     loadMe();
     return () => {
       ignore = true;
     };
-  }, [isSignedIn]);
+  }, []); // <- tidak tergantung isSignedIn
+
+  const authed = Boolean(me) || isSignedIn;
 
   const baseLinks = [{ href: "/products", label: "Products" }];
 
-  const authedExtra = isSignedIn
+  const authedExtra = authed
     ? [
-      { href: "/plants", label: "Dashboard" },
-      { href: "/plants/scan", label: "Scan" },
-      ...(me?.role === 'admin' ? [{ href: "/admin/orders", label: "Admin Orders" }] : []),
-    ]
+        { href: "/plants", label: "Dashboard" },
+        { href: "/plants/scan", label: "Scan" },
+        ...(me?.role === "admin"
+          ? [{ href: "/admin/orders", label: "Admin Orders" }]
+          : []),
+      ]
     : [];
 
   return (
@@ -97,7 +109,7 @@ export default function NavbarClient({ isSignedIn }: Props) {
           {baseLinks.map((l) => (
             <NavButton key={l.href} href={l.href} label={l.label} />
           ))}
-          {isSignedIn && (
+          {authed && (
             <>
               <Separator orientation="vertical" className="mx-1 h-6" />
               {authedExtra.map((l) => (
@@ -116,7 +128,7 @@ export default function NavbarClient({ isSignedIn }: Props) {
             </Link>
           </Button>
 
-          {isSignedIn ? (
+          {authed ? (
             <Link href="/profile" aria-label="Profile" className="block">
               {me?.profilePicture ? (
                 <Image
@@ -173,7 +185,7 @@ export default function NavbarClient({ isSignedIn }: Props) {
                 onClick={() => setOpen(false)}
               />
 
-              {isSignedIn && (
+              {authed && (
                 <>
                   <Separator className="my-2" />
                   {authedExtra.map((l) => (
@@ -189,7 +201,7 @@ export default function NavbarClient({ isSignedIn }: Props) {
 
               <Separator className="my-2" />
 
-              {isSignedIn ? (
+              {authed ? (
                 <Button
                   asChild
                   className="w-full"
