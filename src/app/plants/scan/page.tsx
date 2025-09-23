@@ -28,7 +28,9 @@ import {
   CheckCircle,
 } from "lucide-react";
 import Image from "next/image";
-import type { PlantData } from "@/types/types";
+import type { PlantData, ProductRecommendation } from "@/types/types";
+import Link from "next/link";
+import { toSlug } from "@/lib/slug";
 
 type ScanState = "upload" | "preview" | "scanning" | "results";
 
@@ -129,12 +131,7 @@ export default function PlantScannerPage() {
   };
 
   const resetScanner = async () => {
-    await fetch("/api/plants/analyze", {
-      method: "DELETE",
-      body: JSON.stringify({ url: plantData?.imageUrl }),
-      headers: { "Content-Type": "application/json" },
-    });
-
+    // No remote cleanup required; image will be uploaded on save
     setScanState("upload");
     setSelectedFile(null);
     setPreviewUrl("");
@@ -151,6 +148,8 @@ export default function PlantScannerPage() {
     setPlantData(null);
     setError(null);
   };
+
+  // no add-to-cart here; recommended carousel links directly to product detail
 
   const getScheduleIcon = (type: string) => {
     switch (type) {
@@ -186,18 +185,24 @@ export default function PlantScannerPage() {
     if (!plantData) return;
 
     try {
-      const res = await fetch("/api/plants/add", {
-        method: "POST",
-        body: JSON.stringify({
+      const form = new FormData();
+      if (selectedFile) {
+        form.append("image", selectedFile);
+      }
+      form.append(
+        "payload",
+        JSON.stringify({
           label: plantData.ai.label,
-          imageUrl: plantData.imageUrl,
           part: plantData.ai.part,
           plantingPlan: plantData.ai.plantingPlan,
           care: plantData.ai.care,
           schedule: plantData.ai.schedule,
           notes: plantData.ai.notes,
-        }),
-        headers: { "Content-Type": "application/json" },
+        })
+      );
+      const res = await fetch("/api/plants/add", {
+        method: "POST",
+        body: form,
       });
       if (!res.ok) {
         const msg = await res.text().catch(() => "");
@@ -611,6 +616,53 @@ export default function PlantScannerPage() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Recommended Products */}
+            {Array.isArray(plantData.productRecommendations) &&
+              plantData.productRecommendations.length > 0 && (
+                <Card className="rounded-xl florabyte-card-shadow mt-6">
+                  <CardHeader>
+                    <CardTitle className="font-heading font-semibold">
+                      Recommended Products
+                    </CardTitle>
+                    <CardDescription className="text-[15px] tracking-[0.01em]">
+                      Tailored to your plant’s care needs
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      {plantData.productRecommendations.map(
+                        (p: ProductRecommendation) => (
+                          <Link
+                            key={p._id ?? p.name}
+                            href={`/products/${toSlug(
+                              p.name,
+                              String(p._id ?? "id")
+                            )}`}
+                            className="min-w-[220px] w-56 flex-shrink-0"
+                          >
+                            <div className="rounded-lg overflow-hidden border bg-card hover:shadow-md transition-shadow">
+                              <div className="relative w-full aspect-square bg-muted">
+                                <Image
+                                  src={p.imgUrl}
+                                  alt={p.name}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                              <div className="p-3">
+                                <p className="text-sm font-medium line-clamp-2">
+                                  {p.name}
+                                </p>
+                              </div>
+                            </div>
+                          </Link>
+                        )
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-3 pt-4">

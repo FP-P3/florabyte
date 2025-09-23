@@ -8,7 +8,6 @@ import {
   ProductRecommendation,
 } from "@/types/types";
 import { EmbedContentResponse, GoogleGenAI } from "@google/genai";
-import { UploadApiResponse } from "cloudinary";
 
 export const runtime = "nodejs";
 
@@ -145,23 +144,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const cloudinaryResponse = await new Promise<UploadApiResponse>(
-      (resolve, reject) => {
-        cloudinary.uploader
-          .upload_stream(
-            {
-              folder: "plants",
-              resource_type: "image",
-              transformation: [{ fetch_format: "auto", quality: "auto" }],
-            },
-            (err, result) =>
-              err ? reject(err) : resolve(result as UploadApiResponse)
-          )
-          .end(buffer);
-      }
-    );
-
-    const imageUrl = cloudinaryResponse.secure_url as string;
+    // Do not upload to Cloudinary here; upload later when user saves
+    const imageUrl = "";
 
     const supplies: string[] = isCare(aiJson.care)
       ? aiJson.care.suppliesNeeded
@@ -262,6 +246,7 @@ export async function POST(request: Request) {
       },
       {
         $project: {
+          _id: 1,
           name: 1,
           description: 1,
           price: 1,
@@ -284,6 +269,7 @@ export async function POST(request: Request) {
       { $limit: 8 },
       {
         $project: {
+          _id: 1,
           name: 1,
           description: 1,
           price: 1,
@@ -313,6 +299,7 @@ export async function POST(request: Request) {
         },
         {
           $project: {
+            _id: 1,
             name: 1,
             description: 1,
             price: 1,
@@ -337,6 +324,7 @@ export async function POST(request: Request) {
         { $limit: 8 },
         {
           $project: {
+            _id: 1,
             name: 1,
             description: 1,
             price: 1,
@@ -384,6 +372,7 @@ export async function POST(request: Request) {
         { $limit: 8 },
         {
           $project: {
+            _id: 1,
             name: 1,
             description: 1,
             price: 1,
@@ -411,6 +400,7 @@ export async function POST(request: Request) {
         { $limit: 8 },
         {
           $project: {
+            _id: 1,
             name: 1,
             description: 1,
             price: 1,

@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { db } from "../config/mongodb";
+import type { ScheduleItem } from "@/types/types";
 
 export class PlantModel {
   static async AddPlant(
@@ -8,8 +9,8 @@ export class PlantModel {
     part: string,
     plantingPlan: object,
     care: object,
-    schedule: [],
-    notes: [],
+    schedule: ScheduleItem[],
+    notes: string[],
     userId: string | null
   ) {
     const payload = {
