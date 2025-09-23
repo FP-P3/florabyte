@@ -171,21 +171,19 @@ export default function ProductsPage() {
             : `Showing ${showingFrom}-${showingTo} of ${total} items`}
         </div>
 
-        {/* Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {/* Grid: 6 kolom di semua ukuran */}
+        <div className="grid gap-2 sm:gap-3 grid-cols-6">
           {products.length === 0 && !loading ? (
             <div className="col-span-full text-center text-gray-500">
               No products found.
             </div>
           ) : (
             products.map((product: any, index: number) => (
-              <Link
+              <ProductCard
                 key={product._id || index}
-                href={`/products/${product.slug}`}
-                className="block"
-              >
-                <ProductCard product={product} onAddToCart={handleAddToCart} />
-              </Link>
+                product={product}
+                onAddToCart={handleAddToCart}
+              />
             ))
           )}
         </div>
