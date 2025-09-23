@@ -33,11 +33,15 @@ function NavButton({
       ? pathname === "/"
       : pathname === href || pathname.startsWith(href + "/");
 
+  const activeClass = active
+    ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/30 hover:bg-emerald-700"
+    : "";
+
   return (
     <Button
       asChild
-      variant={active ? "secondary" : "ghost"}
-      className="justify-start"
+      variant={active ? "default" : "ghost"}
+      className={`justify-start ${activeClass}`}
       onClick={onClick}
     >
       <Link href={href}>{label}</Link>
