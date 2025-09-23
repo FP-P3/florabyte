@@ -95,11 +95,16 @@ export default function ProductsPage() {
 
   return (
     <main className="min-h-screen page-bg-home text-foreground">
-      <section className="mx-auto max-w-7xl px-4 md:px-6 py-12 md:py-16">
-        <h1 className="text-3xl md:text-4xl font-bold text-center mb-8">
-          Our Products
-        </h1>
+      {/* Full Width Banner */}
+      <section className="w-full">
+        <img
+          src="/productbanner.jpg"
+          alt="Products Banner"
+          className="w-full h-auto object-cover"
+        />
+      </section>
 
+      <section className="mx-auto max-w-7xl px-4 md:px-6 py-12 md:py-16">
         {/* Search */}
         <div className="mx-auto mb-6 max-w-2xl">
           <input
@@ -110,7 +115,7 @@ export default function ProductsPage() {
               setPage(1);
             }}
             placeholder="Search products or categories..."
-            className="w-full rounded-lg border px-4 py-2 outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full rounded-lg border-2 border-gray-300 px-4 py-2 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
           />
         </div>
 
