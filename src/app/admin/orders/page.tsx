@@ -7,6 +7,7 @@ interface OrderItemSnapshot { productId: string; name: string; price: number; qt
 interface AdminOrder {
     id: string;
     userId: string;
+    userName?: string;
     items: OrderItemSnapshot[];
     total: number;
     status: string; // orderStatus
@@ -106,7 +107,7 @@ export default function AdminOrdersPage() {
                             return (
                                 <tr key={o.id} className="border-t">
                                     <td className="py-2 px-3 font-mono text-[11px]">{o.id.slice(-12)}</td>
-                                    <td className="py-2 px-3 text-[11px] font-mono">{o.userId.slice(-8)}</td>
+                                    <td className="py-2 px-3 text-[11px]">{o.userName || o.userId.slice(-8)}</td>
                                     <td className="py-2 px-3 max-w-[240px]">
                                         <p className="truncate" title={itemsLabel}>{itemsLabel}</p>
                                     </td>
