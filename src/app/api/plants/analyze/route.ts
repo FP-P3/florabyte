@@ -8,7 +8,6 @@ import {
   ProductRecommendation,
 } from "@/types/types";
 import { EmbedContentResponse, GoogleGenAI } from "@google/genai";
-import { UploadApiResponse } from "cloudinary";
 
 export const runtime = "nodejs";
 
@@ -37,11 +36,11 @@ You are a botanist expert. Analyze the following PHOTO and identify whether it c
     "steps": ["string"]
   },
   "care": {
-    "light": "string",
-    "water": "string",
-    "soil": "string",
+    "light": { "level": "low|medium|high|full sun", "explanation": "string" },
+    "water": { "level": "low|moderate|high", "explanation": "string" },
+    "soil": { "level": "poor|average|rich|well-draining", "explanation": "string" },
     "commonIssues": ["string"],
-    "suppliesNeeded": ["string"]
+    "suppliesNeeded": ["brief string (1–3 words each, e.g., 'NPK fertilizer','cocopeat mix','pruning shears')"]
   },
   "schedule": [
     { "type": "water"|"fertilize"|"prune"|"repot"|"inspect", "intervalDays": number, "notes": "string" }
@@ -65,9 +64,9 @@ DECISION RULES:
   - all "label" fields = null, "part"="unknown", "plantingPlan"={}, "care"={}, "schedule"=[], "altCandidates":[], "productRecommendations": { "vectorSearch": { "query": "", "keywords": [] } }
 - If it IS a plant:
   - fill in label according to certainty level (can stop at genus/family if unsure)
-  - "suppliesNeeded" must be specific (e.g., "organic fertilizer","well-draining potting mix","perlite","moss pole","moisture meter","pruning shears")
+  - "suppliesNeeded" must be brief (1–3 words each)
   - "productRecommendations.vectorSearch.query" = a short sentence (max 200 characters) for embedding-based product search. Combine care needs: fertilizers, media, tools, pesticides, etc.
-  - "productRecommendations.vectorSearch.keywords" = array of 6–12 relevant product terms/phrases, e.g., "NPK fertilizer", "cocopeat soil mix", "garden trowel", "sprayer", "organic fungicide", "30cm polybag", etc.
+  - "productRecommendations.vectorSearch.keywords" = array of 6–12 relevant product terms/phrases
 
 GUIDELINES:
 - Use only visual cues from the image.
@@ -145,23 +144,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const cloudinaryResponse = await new Promise<UploadApiResponse>(
-      (resolve, reject) => {
-        cloudinary.uploader
-          .upload_stream(
-            {
-              folder: "plants",
-              resource_type: "image",
-              transformation: [{ fetch_format: "auto", quality: "auto" }],
-            },
-            (err, result) =>
-              err ? reject(err) : resolve(result as UploadApiResponse)
-          )
-          .end(buffer);
-      }
-    );
-
-    const imageUrl = cloudinaryResponse.secure_url as string;
+    // Do not upload to Cloudinary here; upload later when user saves
+    const imageUrl = "";
 
     const supplies: string[] = isCare(aiJson.care)
       ? aiJson.care.suppliesNeeded
@@ -262,6 +246,7 @@ export async function POST(request: Request) {
       },
       {
         $project: {
+          _id: 1,
           name: 1,
           description: 1,
           price: 1,
@@ -284,6 +269,7 @@ export async function POST(request: Request) {
       { $limit: 8 },
       {
         $project: {
+          _id: 1,
           name: 1,
           description: 1,
           price: 1,
@@ -313,6 +299,7 @@ export async function POST(request: Request) {
         },
         {
           $project: {
+            _id: 1,
             name: 1,
             description: 1,
             price: 1,
@@ -337,6 +324,7 @@ export async function POST(request: Request) {
         { $limit: 8 },
         {
           $project: {
+            _id: 1,
             name: 1,
             description: 1,
             price: 1,
@@ -384,6 +372,7 @@ export async function POST(request: Request) {
         { $limit: 8 },
         {
           $project: {
+            _id: 1,
             name: 1,
             description: 1,
             price: 1,
@@ -411,6 +400,7 @@ export async function POST(request: Request) {
         { $limit: 8 },
         {
           $project: {
+            _id: 1,
             name: 1,
             description: 1,
             price: 1,
