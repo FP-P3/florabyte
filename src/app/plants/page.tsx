@@ -11,10 +11,19 @@ import {
   CheckCircle2,
   Clock,
   Plus,
+  Menu,
 } from "lucide-react";
 import { PlantCard } from "@/components/plants/plant-card";
 import { PlantDoc } from "@/types/types";
 import Link from "next/link";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet";
 
 interface Task {
   id: string;
@@ -55,7 +64,6 @@ export default function PlantDashboard() {
     fetchPlants();
   }, []);
 
-  // Helper: map schedule type to label and priority
   const taskLabel = (type: string) => {
     switch (type) {
       case "water":
@@ -98,7 +106,6 @@ export default function PlantDashboard() {
     return nd;
   };
 
-  // Build tasks from plants' schedules
   useEffect(() => {
     if (!plants || plants.length === 0) {
       setTasks([]);
@@ -121,12 +128,10 @@ export default function PlantDashboard() {
         );
         const cycles = Math.floor(diffDays / interval);
         const nextDue = addDays(createdAt, (cycles + 1) * interval);
-        // Make sure same-day tasks are treated as due today
         const daysUntilRaw = (nextDue.getTime() - now.getTime()) / dayMs;
         const dueInDays = isSameDay(nextDue, now)
           ? 0
           : Math.max(0, Math.ceil(daysUntilRaw));
-        // Only surface tasks due today or within next 30 days
         if (dueInDays < 0 || dueInDays > 30) continue;
 
         const dueDateLabel = isSameDay(nextDue, now)
@@ -149,7 +154,6 @@ export default function PlantDashboard() {
         });
       }
     }
-    // Optional: sort by urgency (Today -> Tomorrow -> date), then priority
     newTasks.sort((a, b) => {
       if (a.dueInDays !== b.dueInDays) return a.dueInDays - b.dueInDays;
       const pa = a.priority === "High" ? 0 : a.priority === "Medium" ? 1 : 2;
@@ -180,7 +184,6 @@ export default function PlantDashboard() {
         const msg = await res.text();
         throw new Error(msg || "Failed to delete");
       }
-      // Optimistic UI update
       setPlants((prev) =>
         prev ? prev.filter((p) => p._id !== plantId) : prev
       );
@@ -198,7 +201,6 @@ export default function PlantDashboard() {
     () => tasks.filter((task) => task.dueInDays >= 1 && task.dueInDays <= 7),
     [tasks]
   );
-  // Monthly section removed; keeping only today and weekly buckets
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -213,215 +215,299 @@ export default function PlantDashboard() {
     }
   };
 
-  // Selected plant detail view previously returned a broken JSX tree.
-  // Simplifying by always rendering the main dashboard layout.
-
   return (
-    <div className="flex min-h-screen bg-gradient-to-b from-green-50/50 to-background dark:from-emerald-950/40">
-      {/* Sidebar */}
-      <div className="w-64 bg-sidebar border-r border-sidebar-border p-6">
-        <div className="flex items-center gap-2 mb-8">
-          <Leaf className="h-8 w-8 text-primary" />
-          <h1 className="text-xl font-bold text-sidebar-foreground">
-            My Plants
-          </h1>
-        </div>
+    <div className="min-h-screen page-bg-home">
+      {/* Mobile top bar with Sheet menu */}
+      <div className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b md:hidden">
+        <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon" className="shrink-0">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0">
+              <SheetHeader className="px-6 py-4 border-b">
+                <SheetTitle className="flex items-center gap-2">
+                  <Leaf className="h-5 w-5 text-primary" />
+                  My Plants
+                </SheetTitle>
+              </SheetHeader>
+              <nav className="p-3 space-y-2">
+                <SheetClose asChild>
+                  <Button
+                    variant={activeNav === "dashboard" ? "default" : "ghost"}
+                    className="w-full justify-start gap-3"
+                    onClick={() => setActiveNav("dashboard")}
+                  >
+                    <Leaf className="h-4 w-4" />
+                    Dashboard
+                  </Button>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Button
+                    variant={activeNav === "scan" ? "default" : "ghost"}
+                    className="w-full justify-start gap-3"
+                    onClick={() => setActiveNav("scan")}
+                  >
+                    <Camera className="h-4 w-4" />
+                    Scan
+                  </Button>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Button
+                    variant={activeNav === "plants" ? "default" : "ghost"}
+                    className="w-full justify-start gap-3"
+                    onClick={() => setActiveNav("plants")}
+                  >
+                    <Leaf className="h-4 w-4" />
+                    My Plants
+                  </Button>
+                </SheetClose>
+                <SheetClose asChild>
+                  <Button
+                    variant={activeNav === "schedule" ? "default" : "ghost"}
+                    className="w-full justify-start gap-3"
+                    onClick={() => setActiveNav("schedule")}
+                  >
+                    <Calendar className="h-4 w-4" />
+                    Schedule
+                  </Button>
+                </SheetClose>
+              </nav>
+            </SheetContent>
+          </Sheet>
 
-        <nav className="space-y-2">
-          <Button
-            variant={activeNav === "dashboard" ? "default" : "ghost"}
-            className="w-full justify-start gap-3"
-            onClick={() => setActiveNav("dashboard")}
-          >
-            <Leaf className="h-4 w-4" />
-            Dashboard
-          </Button>
-          <Button
-            variant={activeNav === "scan" ? "default" : "ghost"}
-            className="w-full justify-start gap-3"
-            onClick={() => setActiveNav("scan")}
-          >
-            <Camera className="h-4 w-4" />
-            Scan
-          </Button>
-          <Button
-            variant={activeNav === "plants" ? "default" : "ghost"}
-            className="w-full justify-start gap-3"
-            onClick={() => setActiveNav("plants")}
-          >
-            <Leaf className="h-4 w-4" />
-            My Plants
-          </Button>
-          <Button
-            variant={activeNav === "schedule" ? "default" : "ghost"}
-            className="w-full justify-start gap-3"
-            onClick={() => setActiveNav("schedule")}
-          >
-            <Calendar className="h-4 w-4" />
-            Schedule
-          </Button>
-        </nav>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground text-balance">
-                Plant Dashboard
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                Monitor your plants and stay on top of care tasks
-              </p>
-            </div>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Plant
-            </Button>
+          <div className="flex-1 px-3">
+            <h1 className="text-lg font-semibold leading-tight">
+              Plant Dashboard
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Monitor your plants and tasks
+            </p>
           </div>
 
-          {/* Task Sections */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* Today's Tasks */}
-            <Card className="h-[360px]">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-red-500" />
-                  Today&apos;s Tasks
-                  <Badge variant="secondary">{todayTasks.length}</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 h-[calc(360px-64px)] overflow-y-auto pr-1">
-                {todayTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="flex items-start gap-3 p-3 rounded-lg bg-muted/50"
-                  >
-                    <button
-                      onClick={() => toggleTask(task.id)}
-                      className="mt-0.5"
-                    >
-                      <CheckCircle2
-                        className={`h-4 w-4 ${
-                          task.completed
-                            ? "text-primary fill-primary"
-                            : "text-muted-foreground hover:text-primary"
-                        }`}
-                      />
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={`font-medium text-sm ${
-                          task.completed
-                            ? "line-through text-muted-foreground"
-                            : ""
-                        }`}
-                      >
-                        {task.task}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {task.plantName}
-                      </p>
-                      <Badge
-                        variant="outline"
-                        className={`mt-1 text-xs ${getPriorityColor(
-                          task.priority
-                        )}`}
-                      >
-                        {task.priority}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-                {todayTasks.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    No tasks for today
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+          {/* Add Plant mobile */}
+          <Button className="gap-2 sm:hidden">
+            <Plus className="h-4 w-4" />
+            Add
+          </Button>
+        </div>
+      </div>
 
-            {/* Weekly Tasks */}
-            <Card className="h-[360px]">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-blue-500" />
-                  This Week
-                  <Badge variant="secondary">{weeklyTasks.length}</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 h-[calc(360px-64px)] overflow-y-auto pr-1">
-                {weeklyTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="flex items-start gap-3 p-3 rounded-lg bg-muted/50"
-                  >
-                    <button
-                      onClick={() => toggleTask(task.id)}
-                      className="mt-0.5"
+      <div className="mx-auto max-w-7xl">
+        <div className="flex">
+          {/* Sidebar desktop */}
+          <aside className="hidden md:block w-64 bg-sidebar border-r border-sidebar-border p-6">
+            <div className="flex items-center gap-2 mb-8">
+              <Leaf className="h-8 w-8 text-primary" />
+              <h1 className="text-xl font-bold text-sidebar-foreground">
+                My Plants
+              </h1>
+            </div>
+            <nav className="space-y-2">
+              <Button
+                variant={activeNav === "dashboard" ? "default" : "ghost"}
+                className="w-full justify-start gap-3"
+                onClick={() => setActiveNav("dashboard")}
+              >
+                <Leaf className="h-4 w-4" />
+                Dashboard
+              </Button>
+              <Button
+                variant={activeNav === "scan" ? "default" : "ghost"}
+                className="w-full justify-start gap-3"
+                onClick={() => setActiveNav("scan")}
+              >
+                <Camera className="h-4 w-4" />
+                Scan
+              </Button>
+              <Button
+                variant={activeNav === "plants" ? "default" : "ghost"}
+                className="w-full justify-start gap-3"
+                onClick={() => setActiveNav("plants")}
+              >
+                <Leaf className="h-4 w-4" />
+                My Plants
+              </Button>
+              <Button
+                variant={activeNav === "schedule" ? "default" : "ghost"}
+                className="w-full justify-start gap-3"
+                onClick={() => setActiveNav("schedule")}
+              >
+                <Calendar className="h-4 w-4" />
+                Schedule
+              </Button>
+            </nav>
+          </aside>
+
+          {/* Main */}
+          <main className="flex-1 p-4 md:p-6">
+            {/* Desktop header + Add Plant */}
+            <div className="hidden md:flex items-center justify-between mb-8">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground text-balance">
+                  Plant Dashboard
+                </h1>
+                <p className="text-muted-foreground mt-1">
+                  Monitor your plants and stay on top of care tasks
+                </p>
+              </div>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Plant
+              </Button>
+            </div>
+
+            {/* Task Sections */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
+              {/* Today */}
+              <Card className="md:h-[360px]">
+                <CardHeader className="py-4 md:py-6">
+                  <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                    <Clock className="h-5 w-5 text-red-500" />
+                    Today&apos;s Tasks
+                    <Badge variant="secondary">{todayTasks.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 md:h-[calc(360px-64px)] overflow-y-auto pr-1">
+                  {todayTasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className="flex items-start gap-3 p-3 rounded-lg bg-muted/50"
                     >
-                      <CheckCircle2
-                        className={`h-4 w-4 ${
-                          task.completed
-                            ? "text-primary fill-primary"
-                            : "text-muted-foreground hover:text-primary"
-                        }`}
-                      />
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={`font-medium text-sm ${
-                          task.completed
-                            ? "line-through text-muted-foreground"
-                            : ""
-                        }`}
+                      <button
+                        onClick={() => toggleTask(task.id)}
+                        className="mt-0.5"
                       >
-                        {task.task}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {task.plantName}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
+                        <CheckCircle2
+                          className={`h-4 w-4 ${
+                            task.completed
+                              ? "text-primary fill-primary"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
+                        />
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className={`font-medium text-sm ${
+                            task.completed
+                              ? "line-through text-muted-foreground"
+                              : ""
+                          }`}
+                        >
+                          {task.task}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {task.plantName}
+                        </p>
                         <Badge
                           variant="outline"
-                          className={`text-xs ${getPriorityColor(
+                          className={`mt-1 text-xs ${getPriorityColor(
                             task.priority
                           )}`}
                         >
                           {task.priority}
                         </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {task.dueDate}
-                        </span>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+                  ))}
+                  {todayTasks.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No tasks for today
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
 
-            {/* Monthly Tasks removed per request */}
-          </div>
-
-          {/* Plant Overview Cards - Using PlantCard Component */}
-          <div>
-            <h2 className="text-xl font-semibold mb-6">My Plants</h2>
-            {loading && (
-              <p className="text-sm text-muted-foreground">Loading plants…</p>
-            )}
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            <div className="space-y-6">
-              {plants?.map((plant, idx) => (
-                <Link href={`/plants/${plant._id}`} key={idx}>
-                  <PlantCard plant={plant} onDelete={handleDeletePlant} />
-                </Link>
-              ))}
-              {!loading && !error && (!plants || plants.length === 0) && (
-                <p className="text-sm text-muted-foreground">No plants yet.</p>
-              )}
+              {/* This Week */}
+              <Card className="md:h-[360px]">
+                <CardHeader className="py-4 md:py-6">
+                  <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                    <Calendar className="h-5 w-5 text-blue-500" />
+                    This Week
+                    <Badge variant="secondary">{weeklyTasks.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 md:h-[calc(360px-64px)] overflow-y-auto pr-1">
+                  {weeklyTasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className="flex items-start gap-3 p-3 rounded-lg bg-muted/50"
+                    >
+                      <button
+                        onClick={() => toggleTask(task.id)}
+                        className="mt-0.5"
+                      >
+                        <CheckCircle2
+                          className={`h-4 w-4 ${
+                            task.completed
+                              ? "text-primary fill-primary"
+                              : "text-muted-foreground hover:text-primary"
+                          }`}
+                        />
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className={`font-medium text-sm ${
+                            task.completed
+                              ? "line-through text-muted-foreground"
+                              : ""
+                          }`}
+                        >
+                          {task.task}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {task.plantName}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${getPriorityColor(
+                              task.priority
+                            )}`}
+                          >
+                            {task.priority}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {task.dueDate}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {weeklyTasks.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Nothing scheduled this week
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
             </div>
-          </div>
+
+            {/* Plants list */}
+            <div>
+              <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6">
+                My Plants
+              </h2>
+              {loading && (
+                <p className="text-sm text-muted-foreground">Loading plants…</p>
+              )}
+              {error && <p className="text-sm text-red-600">{error}</p>}
+              <div className="space-y-4 md:space-y-6">
+                {plants?.map((plant, idx) => (
+                  <Link href={`/plants/${plant._id}`} key={idx}>
+                    <PlantCard plant={plant} onDelete={handleDeletePlant} />
+                  </Link>
+                ))}
+                {!loading && !error && (!plants || plants.length === 0) && (
+                  <p className="text-sm text-muted-foreground">
+                    No plants yet.
+                  </p>
+                )}
+              </div>
+            </div>
+          </main>
         </div>
       </div>
     </div>
