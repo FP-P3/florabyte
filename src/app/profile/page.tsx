@@ -26,11 +26,13 @@ export default function Profile() {
   const [ordersLoading, setOrdersLoading] = useState(false);
 
   interface OrderHistoryItem {
-    _id: string;
-    midtransOrderId: string;
-    status: "pending" | "paid" | "cancelled";
+    id: string;
+    midtransOrderId?: string;
+    status: "Pending" | "Diproses" | "Dikirim" | "Selesai" | "Dibatalkan"; // orderStatus
+    paymentStatus: "paid" | "cancelled";
     total: number;
     createdAt: string;
+    updatedAt?: string;
     items: { productId: string; name: string; price: number; qty: number }[];
   }
 
@@ -110,14 +112,14 @@ export default function Profile() {
 
   // Ambil riwayat order setelah user confirmed login
   useEffect(() => {
-    if (!isLoggedIn) return;
+    if (!isLoggedIn || !user?._id) return;
     setOrdersLoading(true);
-    fetch("/api/orders", { cache: "no-store" })
+    fetch(`/api/users/${user._id}/orders`, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : Promise.reject(r.statusText)))
       .then((data) => setOrders(data.orders || []))
       .catch(() => setOrders([]))
       .finally(() => setOrdersLoading(false));
-  }, [isLoggedIn]);
+  }, [isLoggedIn, user?._id]);
 
   const handleBindGoogle = () => {
     if (user?.googleId) return alert("Sudah terhubung.");
@@ -161,7 +163,7 @@ export default function Profile() {
       try {
         localStorage.clear();
         sessionStorage.clear();
-      } catch {}
+      } catch { }
 
       // 4) Redirect to login
       window.location.assign("/login");
@@ -275,6 +277,7 @@ export default function Profile() {
                   <th className="py-2 px-3">Order ID</th>
                   <th className="py-2 px-3">Produk</th>
                   <th className="py-2 px-3">Status</th>
+                  <th className="py-2 px-3">Payment</th>
                   <th className="py-2 px-3 text-right">Total</th>
                 </tr>
               </thead>
@@ -301,29 +304,28 @@ export default function Profile() {
                       month: "short",
                       year: "numeric",
                     });
-                    const statusClass =
-                      o.status === "paid"
-                        ? "bg-green-100 text-green-700"
-                        : o.status === "cancelled"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-yellow-100 text-yellow-700";
+                    const status = o.status;
+                    const statusStyleMap: Record<string, string> = {
+                      Pending: "bg-gray-200 text-gray-700",
+                      Diproses: "bg-blue-100 text-blue-700",
+                      Dikirim: "bg-yellow-100 text-yellow-700",
+                      Selesai: "bg-green-100 text-green-700",
+                      Dibatalkan: "bg-red-100 text-red-700",
+                    };
+                    const statusClass = statusStyleMap[status] || "bg-gray-100 text-gray-600";
                     const itemsLabel = o.items
                       .map((it) => `${it.name}${it.qty > 1 ? ` x${it.qty}` : ""}`)
                       .join(", ");
+                    const orderId = o.midtransOrderId || o.id || "-";
                     return (
-                      <tr key={o._id} className="border-t border-gray-100">
+                      <tr key={orderId} className="border-t border-gray-100">
                         <td className="py-2 px-3 whitespace-nowrap text-gray-600">{formatted}</td>
-                        <td className="py-2 px-3 font-mono text-[11px] text-gray-500">
-                          {o.midtransOrderId || o._id.slice(-8)}
-                        </td>
+                        <td className="py-2 px-3 font-mono text-[11px] text-gray-500">{orderId.toString().slice(-16)}</td>
                         <td className="py-2 px-3 max-w-[240px]">
                           <p className="truncate" title={itemsLabel}>{itemsLabel}</p>
                         </td>
-                        <td className="py-2 px-3">
-                          <span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${statusClass}`}>
-                            {o.status}
-                          </span>
-                        </td>
+                        <td className="py-2 px-3"><span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${statusClass}`}>{status}</span></td>
+                        <td className="py-2 px-3"><span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${o.paymentStatus === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{o.paymentStatus}</span></td>
                         <td className="py-2 px-3 text-right font-medium tabular-nums">
                           {formatIDR(o.total)}
                         </td>
