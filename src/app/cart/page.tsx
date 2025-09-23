@@ -2,18 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import Script from "next/script";
+import { Minus, Plus, Trash2 } from "lucide-react";
 
 interface CartItem {
   productId: string;
@@ -208,79 +201,93 @@ export default function CartPage() {
           </div>
         ) : (
           <>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Image</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Qty</TableHead>
-                  <TableHead>Subtotal</TableHead>
-                  <TableHead>Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {cart.items.map((item) => (
-                  <TableRow key={item.productId}>
-                    <TableCell>
-                      <Image
-                        src={item.imgUrl}
-                        alt={item.name}
-                        width={50}
-                        height={50}
-                        className="object-cover rounded"
-                      />
-                    </TableCell>
-                    <TableCell>{item.name}</TableCell>
-                    <TableCell>Rp {item.price.toLocaleString()}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
+            {/* Grid kartu untuk items: satu per baris, panjang */}
+            <div className="grid gap-4 grid-cols-1 mb-6">
+              {cart.items.map((item) => (
+                <Card key={item.productId} className="shadow-sm">
+                  <CardContent className="p-4 md:p-5">
+                    {/* Desktop: 3 kolom (left info, center qty, right actions) */}
+                    <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
+                      {/* Left: image + name + price */}
+                      <div className="flex items-start gap-4 min-w-0">
+                        <Image
+                          src={item.imgUrl}
+                          alt={item.name}
+                          width={80}
+                          height={80}
+                          className="h-20 w-20 object-cover rounded-xl flex-shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-base md:text-lg line-clamp-2">
+                            {item.name}
+                          </h3>
+                          <p className="text-emerald-700 font-semibold">
+                            Rp {item.price.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Center: qty pill */}
+                      <div className="md:justify-self-center">
+                        <div className="inline-flex items-center h-10 rounded-xl border bg-white shadow-sm overflow-hidden">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 rounded-none"
+                            onClick={() => handleDecreaseQty(item.productId)}
+                            disabled={item.qty <= 1}
+                            aria-label="Decrease quantity"
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="w-12 text-center font-semibold select-none">
+                            {item.qty}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 rounded-none"
+                            onClick={() => handleIncreaseQty(item.productId)}
+                            aria-label="Increase quantity"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Right: subtotal + remove */}
+                      <div className="flex items-center gap-4 md:justify-self-end">
+                        <div className="text-sm md:text-base">
+                          <span className="font-medium">Subtotal: </span>
+                          Rp {(item.price * item.qty).toLocaleString()}
+                        </div>
                         <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDecreaseQty(item.productId)}
-                          disabled={item.qty <= 1} // Disable jika qty=1
+                          variant="destructive"
+                          className="gap-2"
+                          onClick={() => handleRemoveItem(item.productId)}
                         >
-                          -
-                        </Button>
-                        <span>{item.qty}</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleIncreaseQty(item.productId)}
-                        >
-                          +
+                          <Trash2 className="h-4 w-4" />
+                          Remove
                         </Button>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      Rp {(item.price * item.qty).toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleRemoveItem(item.productId)}
-                      >
-                        Remove
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            <div className="mt-6 text-right">
-              <p className="text-xl font-semibold">
-                Total: Rp {cart.total.toLocaleString()}
-              </p>
-              <Button
-                className="mt-4"
-                onClick={handleCheckout}
-                disabled={paying}
-              >
-                {paying ? "Processing..." : "Checkout"}
-              </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
+            {/* Total dan Checkout */}
+            <Card className="shadow-lg">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-center">
+                  <p className="text-xl font-semibold">
+                    Total: Rp {cart.total.toLocaleString()}
+                  </p>
+                  <Button onClick={handleCheckout} disabled={paying} size="lg">
+                    {paying ? "Processing..." : "Checkout"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </>
         )}
       </div>
