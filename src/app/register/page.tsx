@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast"; // Tambahkan import ini
+import toast from "react-hot-toast";
 
 export default function Register() {
   const router = useRouter();
@@ -31,120 +31,101 @@ export default function Register() {
       }
 
       await res.json();
-      toast.success("Registration successful!"); // Toast sukses
-      router.push("/login"); // Redirect ke login
+      toast.success("Registration successful! Please log in.");
+      router.push("/login");
     } catch (err) {
-      toast.error((err as Error).message || "An error occurred"); // Toast error
+      toast.error((err as Error).message || "An error occurred");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Main content */}
-      <div className="flex-1 flex items-center justify-center px-4 md:px-8 lg:px-16">
-        <div className="w-full max-w-md lg:max-w-lg bg-white shadow-lg rounded-xl border-0 p-6 md:p-8 lg:p-10">
-          <div className="flex mb-6 md:mb-8">
-            <button
-              onClick={() => router.push("/login")} // Navigasi ke halaman login
-              className="flex-1 py-3 px-4 md:py-4 md:px-6 font-medium rounded-l-lg transition-colors bg-gray-100 hover:bg-gray-200 text-gray-600"
-            >
-              Login
-            </button>
-            <button
-              onClick={() => router.push("/register")} // Navigasi ke halaman register (halaman ini)
-              className="flex-1 py-3 px-4 md:py-4 md:px-6 font-medium rounded-r-lg transition-colors bg-green-500 hover:bg-green-600 text-white"
-            >
-              Register
-            </button>
-          </div>
-
-          {/* Welcome text */}
-          <div className="text-center mb-6 md:mb-8">
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-semibold text-gray-900 mb-2">
-              Create Account
-            </h1>
-            <p className="text-gray-600 text-sm md:text-base">
-              Sign up to start your plant care journey
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5 md:space-y-6">
-            <div className="space-y-2">
-              <label
-                htmlFor="name"
-                className="block text-gray-700 font-medium text-sm md:text-base"
-              >
-                Name
-              </label>
-              <input
-                id="name"
-                type="text"
-                placeholder="Your Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full h-12 md:h-14 px-3 md:px-4 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500 focus:ring-opacity-20 transition-colors"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label
-                htmlFor="username"
-                className="block text-gray-700 font-medium text-sm md:text-base"
-              >
-                Username
-              </label>
-              <input
-                id="username"
-                type="text"
-                placeholder="yourusername"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full h-12 md:h-14 px-3 md:px-4 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500 focus:ring-opacity-20 transition-colors"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label
-                htmlFor="password"
-                className="block text-gray-700 font-medium text-sm md:text-base"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-12 md:h-14 px-3 md:px-4 text-sm md:text-base border border-gray-200 rounded-lg focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500 focus:ring-opacity-20 transition-colors"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full h-12 md:h-14 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-medium text-sm md:text-base rounded-lg transition-colors"
-            >
-              {loading ? "Signing Up..." : "Sign Up"}
-            </button>
-
-            {/* Link ke login */}
-            <div className="text-center">
-              <span className="text-gray-600 text-sm md:text-base">
-                {"Already have an account? "}
-              </span>
-              <button
-                type="button"
-                onClick={() => router.push("/login")}
-                className="text-green-500 hover:text-green-600 font-medium text-sm md:text-base"
-              >
-                Login here
-              </button>
-            </div>
-          </form>
+    <div className="min-h-screen page-bg-home flex items-center justify-center">
+      <div className="w-full max-w-md bg-white/80 backdrop-blur-lg shadow-2xl rounded-2xl border border-white/30 p-8 m-4">
+        {/* Toggle Buttons */}
+        <div className="flex mb-8 rounded-lg overflow-hidden">
+          <button
+            onClick={() => router.push("/login")}
+            className="flex-1 py-3 px-4 font-medium transition-colors bg-white/50 hover:bg-white/70 text-emerald-800"
+          >
+            Login
+          </button>
+          <button className="flex-1 py-3 px-4 font-bold transition-colors bg-emerald-600 text-white shadow-lg shadow-emerald-500/30">
+            Register
+          </button>
         </div>
+
+        {/* Welcome text */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-emerald-900 mb-2">
+            Create Your Oasis
+          </h1>
+          <p className="text-emerald-800/90">
+            Join Florabyte to start your plant care journey.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label
+              htmlFor="name"
+              className="block text-emerald-800 font-medium text-sm mb-2"
+            >
+              Name
+            </label>
+            <input
+              id="name"
+              type="text"
+              placeholder="Your Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full h-12 px-4 bg-white/70 text-emerald-900 placeholder-emerald-700/60 border border-grey-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="username"
+              className="block text-emerald-800 font-medium text-sm mb-2"
+            >
+              Username
+            </label>
+            <input
+              id="username"
+              type="text"
+              placeholder="yourusername"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full h-12 px-4 bg-white/70 text-emerald-900 placeholder-emerald-700/60 border border-grey-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="password"
+              className="block text-emerald-800 font-medium text-sm mb-2"
+            >
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full h-12 px-4 bg-white/70 text-emerald-900 placeholder-emerald-700/60 border border-grey-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold rounded-lg transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          >
+            {loading ? "Creating Account..." : "Sign Up"}
+          </button>
+        </form>
       </div>
     </div>
   );

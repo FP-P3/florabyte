@@ -11,19 +11,10 @@ import {
   CheckCircle2,
   Clock,
   Plus,
-  Menu,
 } from "lucide-react";
 import { PlantCard } from "@/components/plants/plant-card";
 import { PlantDoc } from "@/types/types";
 import Link from "next/link";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetClose,
-} from "@/components/ui/sheet";
 
 interface Task {
   id: string;
@@ -36,7 +27,6 @@ interface Task {
 }
 
 export default function PlantDashboard() {
-  const [activeNav, setActiveNav] = useState("dashboard");
   const [tasks, setTasks] = useState<Task[]>([]);
   const [plants, setPlants] = useState<PlantDoc[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -217,84 +207,6 @@ export default function PlantDashboard() {
 
   return (
     <div className="min-h-screen page-bg-home">
-      {/* Mobile top bar with Sheet menu */}
-      <div className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b md:hidden">
-        <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="shrink-0">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-72 p-0">
-              <SheetHeader className="px-6 py-4 border-b">
-                <SheetTitle className="flex items-center gap-2">
-                  <Leaf className="h-5 w-5 text-primary" />
-                  My Plants
-                </SheetTitle>
-              </SheetHeader>
-              <nav className="p-3 space-y-2">
-                <SheetClose asChild>
-                  <Button
-                    variant={activeNav === "dashboard" ? "default" : "ghost"}
-                    className="w-full justify-start gap-3"
-                    onClick={() => setActiveNav("dashboard")}
-                  >
-                    <Leaf className="h-4 w-4" />
-                    Dashboard
-                  </Button>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Button
-                    variant={activeNav === "scan" ? "default" : "ghost"}
-                    className="w-full justify-start gap-3"
-                    onClick={() => setActiveNav("scan")}
-                  >
-                    <Camera className="h-4 w-4" />
-                    Scan
-                  </Button>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Button
-                    variant={activeNav === "plants" ? "default" : "ghost"}
-                    className="w-full justify-start gap-3"
-                    onClick={() => setActiveNav("plants")}
-                  >
-                    <Leaf className="h-4 w-4" />
-                    My Plants
-                  </Button>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Button
-                    variant={activeNav === "schedule" ? "default" : "ghost"}
-                    className="w-full justify-start gap-3"
-                    onClick={() => setActiveNav("schedule")}
-                  >
-                    <Calendar className="h-4 w-4" />
-                    Schedule
-                  </Button>
-                </SheetClose>
-              </nav>
-            </SheetContent>
-          </Sheet>
-
-          <div className="flex-1 px-3">
-            <h1 className="text-lg font-semibold leading-tight">
-              Plant Dashboard
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              Monitor your plants and tasks
-            </p>
-          </div>
-
-          {/* Add Plant mobile */}
-          <Button className="gap-2 sm:hidden">
-            <Plus className="h-4 w-4" />
-            Add
-          </Button>
-        </div>
-      </div>
-
       <div className="mx-auto max-w-7xl">
         <div className="flex">
           {/* Main */}
