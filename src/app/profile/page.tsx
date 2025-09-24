@@ -19,6 +19,21 @@ interface User {
   updatedAt?: string | null;
 }
 
+// Order types at module scope for reuse
+export interface OrderHistoryItem {
+  id: string;
+  midtransOrderId?: string;
+  status: "Pending" | "Diproses" | "Dikirim" | "Selesai" | "Dibatalkan"; // orderStatus
+  paymentStatus: "paid" | "cancelled";
+  total: number;
+  createdAt: string;
+  updatedAt?: string;
+  items: { productId: string; name: string; price: number; qty: number }[];
+  recipientName?: string;
+  recipientPhone?: string;
+  recipientAddress?: string;
+}
+
 export default function Profile() {
   const { data: session } = useSession();
   const [user, setUser] = useState<User | null>(null);
@@ -39,17 +54,8 @@ export default function Profile() {
   const [statusFilter, setStatusFilter] = useState<
     "Semua" | "Pending" | "Diproses" | "Dikirim" | "Selesai" | "Dibatalkan"
   >("Semua");
-
-  interface OrderHistoryItem {
-    id: string;
-    midtransOrderId?: string;
-    status: "Pending" | "Diproses" | "Dikirim" | "Selesai" | "Dibatalkan"; // orderStatus
-    paymentStatus: "paid" | "cancelled";
-    total: number;
-    createdAt: string;
-    updatedAt?: string;
-    items: { productId: string; name: string; price: number; qty: number }[];
-  }
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailOrder, setDetailOrder] = useState<OrderHistoryItem | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/me", { credentials: "include", cache: "no-store" })
@@ -84,41 +90,23 @@ export default function Profile() {
       phone: user.phone || "",
       address: user.address || "",
     });
-  }, [user?._id]);
+  }, [user]);
 
   const handleGoogleBinding = useCallback(
     async (googleUser: {
       id?: string | null;
-      sub?: string;
+      sub?: string | null;
       email?: string | null;
       image?: string | null;
     }) => {
       try {
         setBindingGoogle(true);
-        const sessionUser = session?.user as {
-          id?: string;
-          email?: string;
-          image?: string;
-        };
-        let googleId =
-          googleUser.id ||
-          googleUser.sub ||
-          sessionUser?.id ||
-          (
-            session as unknown as {
-              token?: { sub?: string };
-              account?: { providerAccountId?: string };
-            }
-          )?.token?.sub ||
-          (
-            session as unknown as {
-              token?: { sub?: string };
-              account?: { providerAccountId?: string };
-            }
-          )?.account?.providerAccountId;
-
-        const googleEmail = googleUser.email || sessionUser?.email;
-        const profilePicture = googleUser.image || sessionUser?.image;
+        const sessionUser = session?.user;
+        let googleId = googleUser.id || googleUser.sub || undefined;
+        const googleEmail = googleUser.email || sessionUser?.email || null;
+        const profilePicture =
+          googleUser.image ||
+          (typeof sessionUser?.image === "string" ? sessionUser.image : null);
 
         if (!googleId || !googleEmail) {
           googleId = googleId || "temp_" + Date.now();
@@ -157,14 +145,13 @@ export default function Profile() {
 
   useEffect(() => {
     if (session?.user && isLoggedIn && user && !user.googleId) {
-      handleGoogleBinding(
-        session.user as {
-          id?: string | null;
-          sub?: string;
-          email?: string | null;
-          image?: string | null;
-        }
-      );
+      const su = session.user;
+      handleGoogleBinding({
+        id: undefined,
+        sub: undefined,
+        email: su.email ?? null,
+        image: typeof su.image === "string" ? su.image : null,
+      });
     }
   }, [session, isLoggedIn, user?.googleId, user, handleGoogleBinding]);
 
@@ -481,9 +468,11 @@ export default function Profile() {
               <AvatarDisplay
                 name={user.name}
                 image={
-                  user.profilePicture ||
-                  (session?.user as { image?: string | null })?.image ||
-                  undefined
+                  (typeof user.profilePicture === "string" &&
+                    user.profilePicture) ||
+                  (typeof session?.user?.image === "string"
+                    ? session.user.image
+                    : undefined)
                 }
                 googleLinked={!!user.googleId}
               />
@@ -728,13 +717,16 @@ export default function Profile() {
                     <th className="py-3.5 px-4 text-right font-semibold whitespace-nowrap">
                       Total
                     </th>
+                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap">
+                      Aksi
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {ordersLoading && (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={7}
                         className="py-10 text-center text-gray-500 text-sm"
                       >
                         Memuat riwayat...
@@ -744,7 +736,7 @@ export default function Profile() {
                   {!ordersLoading && !filteredOrders.length && (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={7}
                         className="py-10 text-center text-gray-500 text-sm"
                       >
                         Belum ada riwayat pembelian.
@@ -816,6 +808,17 @@ export default function Profile() {
                           <td className="py-3.5 px-4 text-right font-semibold tabular-nums text-xs text-gray-800">
                             {formatIDR(o.total)}
                           </td>
+                          <td className="py-3.5 px-4">
+                            <button
+                              onClick={() => {
+                                setDetailOrder(o);
+                                setDetailOpen(true);
+                              }}
+                              className="text-[11px] px-2 py-1 rounded border bg-white hover:bg-gray-50 text-gray-700"
+                            >
+                              Detail
+                            </button>
+                          </td>
                         </tr>
                       );
                     })}
@@ -825,6 +828,12 @@ export default function Profile() {
           </div>
         </div>
       </section>
+
+      <OrderDetailModal
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        order={detailOrder}
+      />
     </div>
   );
 }
@@ -835,15 +844,16 @@ function Info({
   children,
 }: {
   label: string;
-  value?: unknown;
+  value?: string | number | null | undefined;
   children?: React.ReactNode;
 }) {
-  const rendered = (() => {
-    if (children) return children;
-    if (typeof value === "string" && value) return value;
-    if (typeof value === "number") return value;
-    return <span className="text-gray-400">-</span>;
-  })();
+  const rendered =
+    children ??
+    (value === null || value === undefined || value === "" ? (
+      <span className="text-gray-500">-</span>
+    ) : (
+      value
+    ));
   return (
     <div className="space-y-1">
       <p className="text-[11px] uppercase tracking-wide text-gray-500">
@@ -887,9 +897,10 @@ function AvatarDisplay({
             width={160}
             height={160}
             className="h-40 w-40 rounded-full object-cover ring-4 ring-white shadow-sm outline outline-gray-200 group-hover:outline-emerald-400 transition"
-            onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-              e.currentTarget.style.display = "none";
-              const fallback = e.currentTarget.parentElement?.querySelector(
+            onError={(e) => {
+              const target = e.currentTarget as HTMLImageElement;
+              target.style.display = "none";
+              const fallback = target.parentElement?.querySelector(
                 "[data-fallback-avatar]"
               ) as HTMLElement | null;
               if (fallback) fallback.style.display = "flex";
@@ -912,6 +923,121 @@ function AvatarDisplay({
         )}
         <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 bg-black/30 flex items-center justify-center gap-2 text-[10px] font-medium text-white backdrop-blur-sm transition">
           <span className="px-2 py-1 bg-white/20 rounded-md">Avatar</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Order Detail Modal using non-blocking overlay
+function OrderDetailModal({
+  open,
+  onOpenChange,
+  order,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  order: OrderHistoryItem | null;
+}) {
+  if (!open || !order) return null;
+  const orderId = order.midtransOrderId || order.id;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div
+        className="absolute inset-0 bg-black/40"
+        onClick={() => onOpenChange(false)}
+      />
+      <div className="relative z-10 w-full max-w-lg rounded-xl border bg-white shadow-xl">
+        <div className="p-5 border-b">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-semibold">Detail Pembelian</h3>
+              <p className="text-xs text-gray-600 mt-1">
+                Order: <span className="font-mono">{orderId}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="p-5 space-y-4 max-h-[70vh] overflow-auto">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-[11px] uppercase text-gray-500">
+                Status Order
+              </p>
+              <p className="font-medium">{order.status}</p>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase text-gray-500">Payment</p>
+              <p className="font-medium">{order.paymentStatus}</p>
+            </div>
+          </div>
+          <div className="rounded-lg border bg-gray-50 p-4">
+            <p className="text-[11px] uppercase text-gray-500 mb-2">Penerima</p>
+            <div className="text-sm grid gap-1">
+              <p>
+                <span className="text-gray-500">Nama:</span>{" "}
+                {order.recipientName || "-"}
+              </p>
+              <p>
+                <span className="text-gray-500">Telepon:</span>{" "}
+                {order.recipientPhone || "-"}
+              </p>
+              <p>
+                <span className="text-gray-500">Alamat:</span>{" "}
+                {order.recipientAddress || "-"}
+              </p>
+            </div>
+          </div>
+          <div>
+            <p className="text-[11px] uppercase text-gray-500 mb-2">Items</p>
+            <div className="rounded-lg border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-white border-b text-left">
+                  <tr>
+                    <th className="py-2 px-3">Produk</th>
+                    <th className="py-2 px-3 w-16">Qty</th>
+                    <th className="py-2 px-3 text-right">Harga</th>
+                    <th className="py-2 px-3 text-right">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {order.items.map((it) => (
+                    <tr
+                      key={`${it.productId}-${it.name}`}
+                      className="odd:bg-white even:bg-gray-50"
+                    >
+                      <td className="py-2 px-3">{it.name}</td>
+                      <td className="py-2 px-3">{it.qty}</td>
+                      <td className="py-2 px-3 text-right">
+                        {formatIDR(it.price)}
+                      </td>
+                      <td className="py-2 px-3 text-right">
+                        {formatIDR(it.price * it.qty)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td className="py-2 px-3" colSpan={3}>
+                      <span className="font-medium">Total</span>
+                    </td>
+                    <td className="py-2 px-3 text-right font-semibold">
+                      {formatIDR(order.total)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div className="p-4 border-t flex justify-end">
+          <button
+            onClick={() => onOpenChange(false)}
+            className="h-9 px-4 rounded-md border bg-white hover:bg-gray-50 text-sm"
+          >
+            Tutup
+          </button>
         </div>
       </div>
     </div>
