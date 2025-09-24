@@ -2,7 +2,6 @@ import * as z from "zod";
 import { db } from "../config/mongodb";
 import { ObjectId } from "mongodb";
 import { ProductType } from "@/types/ProductType";
-import { GoogleGenAI } from "@google/genai";
 import { toSlug } from "@/lib/slug";
 
 const productSchema = z.object({
@@ -30,7 +29,7 @@ const productSchema = z.object({
   embedding: z.array(z.number()).optional(),
 });
 
-const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY! });
+// (GoogleGenAI client reserved for future use if semantic features required)
 
 class ProductModel {
   static async getProducts(query?: string) {
@@ -106,7 +105,10 @@ class ProductModel {
   static async updateProduct(id: string, payload: Partial<ProductType>) {
     const parsed = productSchema.partial().parse(payload);
     const now = new Date();
-    const updateDoc: any = { ...parsed, updatedAt: now };
+    const updateDoc: Partial<ProductType> & { updatedAt: Date } = {
+      ...parsed,
+      updatedAt: now,
+    };
     if (parsed.name || parsed.description) {
       const product = await this.getProductById(id);
       const textForEmbedding = `${parsed.name || product.name} ${
@@ -149,7 +151,7 @@ class ProductModel {
     const page = Math.max(1, Number(opts?.page || 1));
     const pageSize = Math.min(48, Math.max(1, Number(opts?.pageSize || 12)));
 
-    const filter: any = {};
+    const filter: Record<string, unknown> = {};
     if (query) {
       filter.$or = [
         { name: { $regex: query, $options: "i" } },
@@ -172,9 +174,10 @@ class ProductModel {
     ]);
 
     // Tambah field slug secara on-the-fly (tidak mengubah DB)
-    const itemsWithSlug = items.map((it: any) => {
+    const itemsWithSlug = items.map((it) => {
       const id = (it._id as ObjectId).toString();
-      return { ...it, slug: toSlug(it.name || "product", id) };
+      const name = (it as Partial<ProductType>).name || "product";
+      return { ...it, slug: toSlug(name, id) };
     });
 
     const pages = Math.max(1, Math.ceil(total / pageSize));

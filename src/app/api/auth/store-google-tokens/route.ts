@@ -11,12 +11,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const session = await getServerSession(authOptions);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const access_token = (session as any)?.access_token as string | undefined;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const refresh_token = (session as any)?.refresh_token as string | undefined;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const expires_at = (session as any)?.expires_at as number | undefined;
+    interface GoogleSessionTokens {
+      access_token?: string;
+      refresh_token?: string;
+      expires_at?: number;
+    }
+    const tokens: GoogleSessionTokens =
+      session as unknown as GoogleSessionTokens;
+    const access_token = tokens.access_token;
+    const refresh_token = tokens.refresh_token;
+    const expires_at = tokens.expires_at;
 
     if (!access_token && !refresh_token) {
       return NextResponse.json(
