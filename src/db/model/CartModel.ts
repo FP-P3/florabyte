@@ -2,7 +2,6 @@ import { ObjectId } from "mongodb";
 import { db } from "../config/mongodb";
 import * as z from "zod";
 
-
 type ProductDoc = {
   _id: ObjectId;
   name?: string;
@@ -35,7 +34,7 @@ class CartModel {
 
     // --- Cek apakah user sudah punya cart 'pending' ---
     const userObjectId = new ObjectId(userId);
-    const existingCart = await db.collection("cart").findOne({
+    const existingCart = await db.collection<CartDoc>("cart").findOne({
       userId: userObjectId,
       status: "pending",
     });
@@ -50,7 +49,9 @@ class CartModel {
         midtransOrderId: "",
         createdAt: new Date(),
       };
-      const insertRes = await db.collection("cart").insertOne(newDoc);
+      const insertRes = await db
+        .collection<CartDoc>("cart")
+        .insertOne(newDoc as Omit<CartDoc, "_id"> & { createdAt: Date });
       return {
         cartId: insertRes.insertedId.toString(),
         total: newDoc.total,
@@ -58,13 +59,10 @@ class CartModel {
     }
 
     // --- Kalau SUDAH ada cart: tambahkan produk & update total ---
-    await db.collection("cart").updateOne(
-      { _id: existingCart._id },
-      {
-        $push: { productIds: new ObjectId(productId) },
-        $inc: { total: price },
-      } as unknown as Record<string, unknown>
-    );
+    await db.collection("cart").updateOne({ _id: existingCart._id }, {
+      $push: { productIds: new ObjectId(productId) },
+      $inc: { total: price },
+    } as unknown as Record<string, unknown>);
 
     // total baru = total lama + price produk yang baru ditambah
     const newTotal = Number(existingCart.total || 0) + price;
@@ -76,7 +74,7 @@ class CartModel {
   }
   static async getPendingWithProducts(userId: string) {
     // --- Ambil cart 'pending' ---
-    const cart = await db.collection("cart").findOne({
+    const cart = await db.collection<CartDoc>("cart").findOne({
       userId: new ObjectId(userId),
       status: "pending",
     });
@@ -143,11 +141,14 @@ class CartModel {
     // Ambil produk untuk harga
     const product = await db
       .collection("Products")
-      .findOne<ProductDoc>({ _id: productObjectId }, { projection: { price: 1 } });
+      .findOne<ProductDoc>(
+        { _id: productObjectId },
+        { projection: { price: 1 } }
+      );
     const price = Number(product?.price ?? 0);
 
     // Ambil cart pending
-    const cart = await db.collection("cart").findOne({
+    const cart = await db.collection<CartDoc>("cart").findOne({
       userId: userObjectId,
       status: "pending",
     });
@@ -157,13 +158,10 @@ class CartModel {
 
     if (action === "increase") {
       // Push productId dan inc total
-      await db.collection("cart").updateOne(
-        { _id: cart._id },
-        {
-          $push: { productIds: productObjectId },
-          $inc: { total: price },
-        } as unknown as Record<string, unknown>
-      );
+      await db.collection("cart").updateOne({ _id: cart._id }, {
+        $push: { productIds: productObjectId },
+        $inc: { total: price },
+      } as unknown as Record<string, unknown>);
     } else if (action === "decrease") {
       // Pull satu instance dan dec total
       const productIds = cart.productIds || [];
@@ -177,15 +175,12 @@ class CartModel {
 
       if (productIds.length === 0) {
         // Jika kosong, hapus cart
-        await db.collection("cart").deleteOne({ _id: cart._id });
+        await db.collection<CartDoc>("cart").deleteOne({ _id: cart._id });
       } else {
-        await db.collection("cart").updateOne(
-          { _id: cart._id },
-          {
-            $set: { productIds },
-            $inc: { total: -price },
-          } as unknown as Record<string, unknown>
-        );
+        await db.collection("cart").updateOne({ _id: cart._id }, {
+          $set: { productIds },
+          $inc: { total: -price },
+        } as unknown as Record<string, unknown>);
       }
     }
   }
@@ -196,14 +191,17 @@ class CartModel {
     // Ambil produk untuk harga
     const product = await db
       .collection("Products")
-      .findOne<ProductDoc>({ _id: productObjectId }, { projection: { price: 1 } });
+      .findOne<ProductDoc>(
+        { _id: productObjectId },
+        { projection: { price: 1 } }
+      );
     if (!product) {
       throw new Error("Produk tidak ditemukan");
     }
     const price = Number(product.price ?? 0);
 
     // Ambil cart pending
-    const cart = await db.collection("cart").findOne({
+    const cart = await db.collection<CartDoc>("cart").findOne({
       userId: userObjectId,
       status: "pending",
     });
@@ -227,20 +225,21 @@ class CartModel {
 
     if (newProductIds.length === 0) {
       // Jika kosong, hapus cart
-      await db.collection("cart").deleteOne({ _id: cart._id });
+      await db.collection<CartDoc>("cart").deleteOne({ _id: cart._id });
     } else {
-      await db.collection("cart").updateOne(
-        { _id: cart._id },
-        {
-          $set: { productIds: newProductIds },
-          $inc: { total: -(price * qty) },
-        } as unknown as Record<string, unknown>
-      );
+      await db.collection("cart").updateOne({ _id: cart._id }, {
+        $set: { productIds: newProductIds },
+        $inc: { total: -(price * qty) },
+      } as unknown as Record<string, unknown>);
     }
   }
   static async setCheckoutInfo(
     userId: string,
-    info: { recipientName: string; recipientPhone: string; recipientAddress: string }
+    info: {
+      recipientName: string;
+      recipientPhone: string;
+      recipientAddress: string;
+    }
   ) {
     if (!userId || !ObjectId.isValid(userId)) {
       throw new Error("userId tidak valid");

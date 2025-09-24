@@ -13,7 +13,6 @@ export default function SeoJsonLd() {
   return (
     <script
       type="application/ld+json"
-      // @ts-ignore
       dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
     />
   );

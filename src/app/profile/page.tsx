@@ -45,10 +45,15 @@ export default function Profile() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: "", username: "", phone: "", address: "" });
+  const [form, setForm] = useState({
+    name: "",
+    username: "",
+    phone: "",
+    address: "",
+  });
   const [statusFilter, setStatusFilter] = useState<
-    'Semua' | 'Pending' | 'Diproses' | 'Dikirim' | 'Selesai' | 'Dibatalkan'
-  >('Semua');
+    "Semua" | "Pending" | "Diproses" | "Dikirim" | "Selesai" | "Dibatalkan"
+  >("Semua");
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailOrder, setDetailOrder] = useState<OrderHistoryItem | null>(null);
 
@@ -88,13 +93,20 @@ export default function Profile() {
   }, [user]);
 
   const handleGoogleBinding = useCallback(
-    async (googleUser: { id?: string | null; sub?: string | null; email?: string | null; image?: string | null }) => {
+    async (googleUser: {
+      id?: string | null;
+      sub?: string | null;
+      email?: string | null;
+      image?: string | null;
+    }) => {
       try {
         setBindingGoogle(true);
         const sessionUser = session?.user;
         let googleId = googleUser.id || googleUser.sub || undefined;
         const googleEmail = googleUser.email || sessionUser?.email || null;
-        const profilePicture = googleUser.image || (typeof sessionUser?.image === 'string' ? sessionUser.image : null);
+        const profilePicture =
+          googleUser.image ||
+          (typeof sessionUser?.image === "string" ? sessionUser.image : null);
 
         if (!googleId || !googleEmail) {
           googleId = googleId || "temp_" + Date.now();
@@ -134,7 +146,12 @@ export default function Profile() {
   useEffect(() => {
     if (session?.user && isLoggedIn && user && !user.googleId) {
       const su = session.user;
-      handleGoogleBinding({ id: undefined, sub: undefined, email: su.email ?? null, image: typeof su.image === 'string' ? su.image : null });
+      handleGoogleBinding({
+        id: undefined,
+        sub: undefined,
+        email: su.email ?? null,
+        image: typeof su.image === "string" ? su.image : null,
+      });
     }
   }, [session, isLoggedIn, user?.googleId, user, handleGoogleBinding]);
 
@@ -153,13 +170,15 @@ export default function Profile() {
   const copyText = useCallback((text: string) => {
     try {
       if (navigator?.clipboard?.writeText) {
-        navigator.clipboard.writeText(text).then(() => toast.success("Order ID disalin"));
+        navigator.clipboard
+          .writeText(text)
+          .then(() => toast.success("Order ID disalin"));
       } else {
-        const ta = document.createElement('textarea');
+        const ta = document.createElement("textarea");
         ta.value = text;
         document.body.appendChild(ta);
         ta.select();
-        document.execCommand('copy');
+        document.execCommand("copy");
         document.body.removeChild(ta);
         toast.success("Order ID disalin");
       }
@@ -171,16 +190,18 @@ export default function Profile() {
   // Stats & filtered orders
   const { totalOrders, cancelledOrders, totalSpent } = useMemo(() => {
     const totalOrders = orders.length;
-    const cancelledOrders = orders.filter(o => o.status === 'Dibatalkan').length;
+    const cancelledOrders = orders.filter(
+      (o) => o.status === "Dibatalkan"
+    ).length;
     const totalSpent = orders
-      .filter(o => o.paymentStatus === 'paid')
+      .filter((o) => o.paymentStatus === "paid")
       .reduce((acc, o) => acc + (o.total || 0), 0);
     return { totalOrders, cancelledOrders, totalSpent };
   }, [orders]);
 
   const filteredOrders = useMemo(() => {
-    if (statusFilter === 'Semua') return orders;
-    return orders.filter(o => o.status === statusFilter);
+    if (statusFilter === "Semua") return orders;
+    return orders.filter((o) => o.status === statusFilter);
   }, [orders, statusFilter]);
 
   const handleBindGoogle = () => {
@@ -226,7 +247,7 @@ export default function Profile() {
       try {
         localStorage.clear();
         sessionStorage.clear();
-      } catch { }
+      } catch {}
 
       // 4) Redirect to login
       window.location.assign("/login");
@@ -283,7 +304,8 @@ export default function Profile() {
         </div>
       </div>
     );
-  if (!isLoggedIn) return <p className="p-6 text-center">Silakan login dulu.</p>;
+  if (!isLoggedIn)
+    return <p className="p-6 text-center">Silakan login dulu.</p>;
   if (!user) return <p className="p-6 text-center">User tidak ditemukan.</p>;
 
   return (
@@ -295,8 +317,12 @@ export default function Profile() {
       <div className="flex flex-col gap-6">
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Profil Akun</h1>
-            <p className="text-sm text-muted-foreground mt-1">Kelola identitas & keterhubungan akun Anda.</p>
+            <h1 className="text-3xl font-semibold tracking-tight">
+              Profil Akun
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Kelola identitas & keterhubungan akun Anda.
+            </p>
           </div>
           <div className="flex items-center gap-3 flex-wrap justify-end">
             {!editing ? (
@@ -308,7 +334,18 @@ export default function Profile() {
                     className="h-9 px-3 text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition flex items-center gap-2"
                     title="Edit profil"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="opacity-90"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="currentColor" /></svg>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      className="opacity-90"
+                    >
+                      <path
+                        d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"
+                        fill="currentColor"
+                      />
+                    </svg>
                     Edit Profil
                   </button>
                   <button
@@ -316,7 +353,18 @@ export default function Profile() {
                     className="h-9 px-3 text-sm hover:bg-gray-50 border-l flex items-center gap-2"
                     title="Muat ulang halaman"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-gray-600"><path d="M17.65 6.35A7.95 7.95 0 0 0 12 4V1L7 6l5 5V7c2.76 0 5 2.24 5 5a5 5 0 0 1-8.9 3h-2.1A7 7 0 1 0 19 12c0-1.61-.59-3.09-1.35-4.65z" fill="currentColor" /></svg>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      className="text-gray-600"
+                    >
+                      <path
+                        d="M17.65 6.35A7.95 7.95 0 0 0 12 4V1L7 6l5 5V7c2.76 0 5 2.24 5 5a5 5 0 0 1-8.9 3h-2.1A7 7 0 1 0 19 12c0-1.61-.59-3.09-1.35-4.65z"
+                        fill="currentColor"
+                      />
+                    </svg>
                     Refresh
                   </button>
                 </div>
@@ -326,7 +374,18 @@ export default function Profile() {
                   className="h-9 px-4 rounded-md border border-red-500 text-red-600 bg-white hover:bg-red-50 text-sm font-medium shadow-sm flex items-center gap-2"
                   title="Keluar akun"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-red-600"><path d="M10 17l5-5-5-5v3H3v4h7v3zm9-14H11a2 2 0 0 0-2 2v3h2V5h8v14h-8v-3H9v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z" fill="currentColor" /></svg>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    className="text-red-600"
+                  >
+                    <path
+                      d="M10 17l5-5-5-5v3H3v4h7v3zm9-14H11a2 2 0 0 0-2 2v3h2V5h8v14h-8v-3H9v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"
+                      fill="currentColor"
+                    />
+                  </svg>
                   Logout
                 </button>
               </>
@@ -334,11 +393,27 @@ export default function Profile() {
               <>
                 <div className="inline-flex items-stretch rounded-md border bg-white shadow-sm overflow-hidden">
                   <button
-                    onClick={() => { setEditing(false); setForm({ name: user!.name, username: user!.username, phone: user!.phone || "", address: user!.address || "" }); }}
+                    onClick={() => {
+                      setEditing(false);
+                      setForm({
+                        name: user!.name,
+                        username: user!.username,
+                        phone: user!.phone || "",
+                        address: user!.address || "",
+                      });
+                    }}
                     className="h-9 px-3 text-sm hover:bg-gray-50 flex items-center gap-2"
                     title="Batalkan perubahan"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-gray-600"><path d="M19 13H5v-2h14v2z" fill="currentColor" /></svg>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      className="text-gray-600"
+                    >
+                      <path d="M19 13H5v-2h14v2z" fill="currentColor" />
+                    </svg>
                     Batal
                   </button>
                   <button
@@ -347,8 +422,19 @@ export default function Profile() {
                     className="h-9 px-3 text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"
                     title="Simpan perubahan"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="opacity-90"><path d="M9 16.2l-3.5-3.5L4 14.2l5 5 12-12-1.5-1.5L9 16.2z" fill="currentColor" /></svg>
-                    {saving ? 'Menyimpan…' : 'Simpan'}
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      className="opacity-90"
+                    >
+                      <path
+                        d="M9 16.2l-3.5-3.5L4 14.2l5 5 12-12-1.5-1.5L9 16.2z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                    {saving ? "Menyimpan…" : "Simpan"}
                   </button>
                 </div>
                 <button
@@ -356,7 +442,18 @@ export default function Profile() {
                   className="h-9 px-4 rounded-md border border-red-500 text-red-600 bg-white hover:bg-red-50 text-sm font-medium shadow-sm flex items-center gap-2"
                   title="Keluar akun"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-red-600"><path d="M10 17l5-5-5-5v3H3v4h7v3zm9-14H11a2 2 0 0 0-2 2v3h2V5h8v14h-8v-3H9v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z" fill="currentColor" /></svg>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    className="text-red-600"
+                  >
+                    <path
+                      d="M10 17l5-5-5-5v3H3v4h7v3zm9-14H11a2 2 0 0 0-2 2v3h2V5h8v14h-8v-3H9v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"
+                      fill="currentColor"
+                    />
+                  </svg>
                   Logout
                 </button>
               </>
@@ -370,11 +467,19 @@ export default function Profile() {
             <div className="p-4 rounded-xl border bg-white shadow-sm flex flex-col items-center">
               <AvatarDisplay
                 name={user.name}
-                image={(typeof user.profilePicture === 'string' && user.profilePicture) || (typeof session?.user?.image === 'string' ? session.user.image : undefined)}
+                image={
+                  (typeof user.profilePicture === "string" &&
+                    user.profilePicture) ||
+                  (typeof session?.user?.image === "string"
+                    ? session.user.image
+                    : undefined)
+                }
                 googleLinked={!!user.googleId}
               />
               <p className="mt-3 font-medium text-sm">{user.name}</p>
-              <p className="text-[11px] text-gray-500 font-mono">@{user.username}</p>
+              <p className="text-[11px] text-gray-500 font-mono">
+                @{user.username}
+              </p>
               <div className="mt-4 w-full flex flex-col gap-2">
                 {user.googleId ? (
                   <button
@@ -396,15 +501,24 @@ export default function Profile() {
               </div>
             </div>
             <div className="rounded-xl border bg-white p-4 shadow-sm space-y-3">
-              <h3 className="text-sm font-semibold tracking-wide">Status Koneksi</h3>
+              <h3 className="text-sm font-semibold tracking-wide">
+                Status Koneksi
+              </h3>
               <div className="flex items-center gap-2 text-sm">
                 {user.googleId ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 px-3 py-1 text-[11px] font-medium">Terhubung Google</span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 px-3 py-1 text-[11px] font-medium">
+                    Terhubung Google
+                  </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 text-gray-600 px-3 py-1 text-[11px] font-medium">Belum Terhubung</span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 text-gray-600 px-3 py-1 text-[11px] font-medium">
+                    Belum Terhubung
+                  </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">Menghubungkan akun memudahkan login cepat dan sinkronisasi avatar.</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Menghubungkan akun memudahkan login cepat dan sinkronisasi
+                avatar.
+              </p>
             </div>
           </div>
 
@@ -415,15 +529,19 @@ export default function Profile() {
                 <Info label="Nama" value={user.name} />
                 <Info label="Username">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded border border-gray-200 inline-block">@{user.username}</span>
+                    <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded border border-gray-200 inline-block">
+                      @{user.username}
+                    </span>
                     <button
                       onClick={() => copyText(user.username)}
                       className="text-[11px] px-2 py-1 rounded border bg-white hover:bg-gray-50 text-gray-600"
-                    >Salin</button>
+                    >
+                      Salin
+                    </button>
                   </div>
                 </Info>
-                <Info label="Nomor Telepon" value={user.phone || '-'} />
-                <Info label="Alamat" value={user.address || '-'} />
+                <Info label="Nomor Telepon" value={user.phone || "-"} />
+                <Info label="Alamat" value={user.address || "-"} />
                 <Info label="Google Email">
                   {user.googleEmail ? (
                     <div className="flex items-center gap-2">
@@ -431,34 +549,87 @@ export default function Profile() {
                       <button
                         onClick={() => copyText(user.googleEmail!)}
                         className="text-[11px] px-2 py-1 rounded border bg-white hover:bg-gray-50 text-gray-600"
-                      >Salin</button>
+                      >
+                        Salin
+                      </button>
                     </div>
                   ) : (
                     <span className="text-sm">-</span>
                   )}
                 </Info>
-                <Info label="Dibuat" value={user.createdAt ? new Date(user.createdAt).toLocaleDateString('id-ID') : '-'} />
-                <Info label="Diperbarui" value={user.updatedAt ? new Date(user.updatedAt).toLocaleDateString('id-ID') : '-'} />
+                <Info
+                  label="Dibuat"
+                  value={
+                    user.createdAt
+                      ? new Date(user.createdAt).toLocaleDateString("id-ID")
+                      : "-"
+                  }
+                />
+                <Info
+                  label="Diperbarui"
+                  value={
+                    user.updatedAt
+                      ? new Date(user.updatedAt).toLocaleDateString("id-ID")
+                      : "-"
+                  }
+                />
               </div>
             ) : (
               <div className="p-6 grid md:grid-cols-2 gap-6">
                 <div className="space-y-1">
-                  <label className="text-[11px] uppercase tracking-wide text-gray-500">Nama</label>
-                  <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="h-10 w-full rounded-md border bg-white px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                  <label className="text-[11px] uppercase tracking-wide text-gray-500">
+                    Nama
+                  </label>
+                  <input
+                    value={form.name}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, name: e.target.value }))
+                    }
+                    className="h-10 w-full rounded-md border bg-white px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] uppercase tracking-wide text-gray-500">Username</label>
-                  <input value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} className="h-10 w-full rounded-md border bg-white px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                  <label className="text-[11px] uppercase tracking-wide text-gray-500">
+                    Username
+                  </label>
+                  <input
+                    value={form.username}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, username: e.target.value }))
+                    }
+                    className="h-10 w-full rounded-md border bg-white px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] uppercase tracking-wide text-gray-500">Nomor Telepon</label>
-                  <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="0812xxxxxxx" className="h-10 w-full rounded-md border bg-white px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                  <label className="text-[11px] uppercase tracking-wide text-gray-500">
+                    Nomor Telepon
+                  </label>
+                  <input
+                    value={form.phone}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, phone: e.target.value }))
+                    }
+                    placeholder="0812xxxxxxx"
+                    className="h-10 w-full rounded-md border bg-white px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
                 </div>
                 <div className="space-y-1 md:col-span-2">
-                  <label className="text-[11px] uppercase tracking-wide text-gray-500">Alamat</label>
-                  <textarea value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} rows={3} className="w-full rounded-md border bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                  <label className="text-[11px] uppercase tracking-wide text-gray-500">
+                    Alamat
+                  </label>
+                  <textarea
+                    value={form.address}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, address: e.target.value }))
+                    }
+                    rows={3}
+                    className="w-full rounded-md border bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
                 </div>
-                <p className="md:col-span-2 text-[11px] text-gray-500">Kamu dapat mengosongkan nomor telepon/alamat untuk menghapusnya.</p>
+                <p className="md:col-span-2 text-[11px] text-gray-500">
+                  Kamu dapat mengosongkan nomor telepon/alamat untuk
+                  menghapusnya.
+                </p>
               </div>
             )}
           </div>
@@ -467,27 +638,60 @@ export default function Profile() {
 
       {/* Quick Stats */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard title="Total Order" value={totalOrders.toString()} accent="from-emerald-500/10 to-emerald-500/0" />
-        <StatCard title="Dibatalkan" value={cancelledOrders.toString()} accent="from-amber-500/10 to-amber-500/0" />
-        <StatCard title="Total Pembelian" value={formatIDR(totalSpent)} accent="from-sky-500/10 to-sky-500/0" />
+        <StatCard
+          title="Total Order"
+          value={totalOrders.toString()}
+          accent="from-emerald-500/10 to-emerald-500/0"
+        />
+        <StatCard
+          title="Dibatalkan"
+          value={cancelledOrders.toString()}
+          accent="from-amber-500/10 to-amber-500/0"
+        />
+        <StatCard
+          title="Total Pembelian"
+          value={formatIDR(totalSpent)}
+          accent="from-sky-500/10 to-sky-500/0"
+        />
       </section>
 
       {/* Order History */}
       <section className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-semibold tracking-tight">Riwayat Pembelian</h2>
-            <div className="hidden md:block text-xs text-muted-foreground">•</div>
-            <span className="text-xs text-muted-foreground">{filteredOrders.length} order</span>
+            <h2 className="text-2xl font-semibold tracking-tight">
+              Riwayat Pembelian
+            </h2>
+            <div className="hidden md:block text-xs text-muted-foreground">
+              •
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {filteredOrders.length} order
+            </span>
           </div>
           {/* Status filter chips */}
           <div className="w-full md:w-auto flex flex-wrap items-center gap-2">
-            {(['Semua', 'Pending', 'Diproses', 'Dikirim', 'Selesai', 'Dibatalkan'] as const).map(s => (
+            {(
+              [
+                "Semua",
+                "Pending",
+                "Diproses",
+                "Dikirim",
+                "Selesai",
+                "Dibatalkan",
+              ] as const
+            ).map((s) => (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                className={`h-8 px-3 rounded-full border text-xs transition ${statusFilter === s ? 'bg-emerald-600 text-white border-emerald-600 shadow' : 'bg-white hover:bg-gray-50 text-gray-700'}`}
-              >{s}</button>
+                className={`h-8 px-3 rounded-full border text-xs transition ${
+                  statusFilter === s
+                    ? "bg-emerald-600 text-white border-emerald-600 shadow"
+                    : "bg-white hover:bg-gray-50 text-gray-700"
+                }`}
+              >
+                {s}
+              </button>
             ))}
           </div>
         </div>
@@ -497,64 +701,127 @@ export default function Profile() {
               <table className="w-full text-sm">
                 <thead className="sticky top-0 z-10 bg-white/90 supports-[backdrop-filter]:bg-white/60 backdrop-blur text-left text-[11px] uppercase tracking-wide text-gray-600 border-b">
                   <tr>
-                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap">Tanggal</th>
-                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap">Order ID</th>
+                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap">
+                      Tanggal
+                    </th>
+                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap">
+                      Order ID
+                    </th>
                     <th className="py-3.5 px-4 font-semibold">Produk</th>
-                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap">STATUS ORDER</th>
-                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap">Payment</th>
-                    <th className="py-3.5 px-4 text-right font-semibold whitespace-nowrap">Total</th>
-                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap">Aksi</th>
+                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap">
+                      STATUS ORDER
+                    </th>
+                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap">
+                      Payment
+                    </th>
+                    <th className="py-3.5 px-4 text-right font-semibold whitespace-nowrap">
+                      Total
+                    </th>
+                    <th className="py-3.5 px-4 font-semibold whitespace-nowrap">
+                      Aksi
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {ordersLoading && (
                     <tr>
-                      <td colSpan={7} className="py-10 text-center text-gray-500 text-sm">Memuat riwayat...</td>
+                      <td
+                        colSpan={7}
+                        className="py-10 text-center text-gray-500 text-sm"
+                      >
+                        Memuat riwayat...
+                      </td>
                     </tr>
                   )}
                   {!ordersLoading && !filteredOrders.length && (
                     <tr>
-                      <td colSpan={7} className="py-10 text-center text-gray-500 text-sm">Belum ada riwayat pembelian.</td>
+                      <td
+                        colSpan={7}
+                        className="py-10 text-center text-gray-500 text-sm"
+                      >
+                        Belum ada riwayat pembelian.
+                      </td>
                     </tr>
                   )}
-                  {!ordersLoading && filteredOrders.map(o => {
-                    const date = new Date(o.createdAt);
-                    const formatted = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-                    const itemsLabel = o.items.map(it => `${it.name}${it.qty > 1 ? ` x${it.qty}` : ''}`).join(', ');
-                    const orderId = o.midtransOrderId || o.id || '-';
-                    const statusBadge = badgeColor(o.status);
-                    const paymentBadge = o.paymentStatus === 'paid'
-                      ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                      : 'bg-red-100 text-red-700 border border-red-200';
-                    return (
-                      <tr key={orderId} className="group border-b last:border-b-0 odd:bg-white even:bg-gray-50/50 hover:bg-emerald-50/40 transition-colors">
-                        <td className="py-3.5 px-4 whitespace-nowrap text-gray-600 text-xs">{formatted}</td>
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-[11px] text-gray-600 bg-gray-100 rounded px-2 py-0.5 border border-gray-200">
-                              {orderId.toString().slice(-16)}
+                  {!ordersLoading &&
+                    filteredOrders.map((o) => {
+                      const date = new Date(o.createdAt);
+                      const formatted = date.toLocaleDateString("id-ID", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      });
+                      const itemsLabel = o.items
+                        .map(
+                          (it) => `${it.name}${it.qty > 1 ? ` x${it.qty}` : ""}`
+                        )
+                        .join(", ");
+                      const orderId = o.midtransOrderId || o.id || "-";
+                      const statusBadge = badgeColor(o.status);
+                      const paymentBadge =
+                        o.paymentStatus === "paid"
+                          ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                          : "bg-red-100 text-red-700 border border-red-200";
+                      return (
+                        <tr
+                          key={orderId}
+                          className="group border-b last:border-b-0 odd:bg-white even:bg-gray-50/50 hover:bg-emerald-50/40 transition-colors"
+                        >
+                          <td className="py-3.5 px-4 whitespace-nowrap text-gray-600 text-xs">
+                            {formatted}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[11px] text-gray-600 bg-gray-100 rounded px-2 py-0.5 border border-gray-200">
+                                {orderId.toString().slice(-16)}
+                              </span>
+                              {orderId !== "-" && (
+                                <button
+                                  onClick={() => copyText(orderId.toString())}
+                                  className="opacity-0 group-hover:opacity-100 transition text-[10px] px-2 py-1 rounded border bg-white hover:bg-gray-50 text-gray-600"
+                                  title="Salin Order ID"
+                                >
+                                  Salin
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 max-w-[340px]">
+                            <p className="truncate text-xs" title={itemsLabel}>
+                              {itemsLabel}
+                            </p>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-medium ${statusBadge}`}
+                            >
+                              {o.status}
                             </span>
-                            {orderId !== '-' && (
-                              <button
-                                onClick={() => copyText(orderId.toString())}
-                                className="opacity-0 group-hover:opacity-100 transition text-[10px] px-2 py-1 rounded border bg-white hover:bg-gray-50 text-gray-600"
-                                title="Salin Order ID"
-                              >Salin</button>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 max-w-[340px]">
-                          <p className="truncate text-xs" title={itemsLabel}>{itemsLabel}</p>
-                        </td>
-                        <td className="py-3.5 px-4"><span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-medium ${statusBadge}`}>{o.status}</span></td>
-                        <td className="py-3.5 px-4"><span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-medium ${paymentBadge}`}>{o.paymentStatus}</span></td>
-                        <td className="py-3.5 px-4 text-right font-semibold tabular-nums text-xs text-gray-800">{formatIDR(o.total)}</td>
-                        <td className="py-3.5 px-4">
-                          <button onClick={() => { setDetailOrder(o); setDetailOpen(true); }} className="text-[11px] px-2 py-1 rounded border bg-white hover:bg-gray-50 text-gray-700">Detail</button>
-                        </td>
-                      </tr>
-                    )
-                  })}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-medium ${paymentBadge}`}
+                            >
+                              {o.paymentStatus}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-right font-semibold tabular-nums text-xs text-gray-800">
+                            {formatIDR(o.total)}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <button
+                              onClick={() => {
+                                setDetailOrder(o);
+                                setDetailOpen(true);
+                              }}
+                              className="text-[11px] px-2 py-1 rounded border bg-white hover:bg-gray-50 text-gray-700"
+                            >
+                              Detail
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>
@@ -562,16 +829,37 @@ export default function Profile() {
         </div>
       </section>
 
-      <OrderDetailModal open={detailOpen} onOpenChange={setDetailOpen} order={detailOrder} />
+      <OrderDetailModal
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        order={detailOrder}
+      />
     </div>
   );
 }
 
-function Info({ label, value, children }: { label: string; value?: string | number | null | undefined; children?: React.ReactNode }) {
+function Info({
+  label,
+  value,
+  children,
+}: {
+  label: string;
+  value?: string | number | null | undefined;
+  children?: React.ReactNode;
+}) {
+  const rendered =
+    children ??
+    (value === null || value === undefined || value === "" ? (
+      <span className="text-gray-500">-</span>
+    ) : (
+      value
+    ));
   return (
     <div className="space-y-1">
-      <p className="text-[11px] uppercase tracking-wide text-gray-500">{label}</p>
-      {children ? <div>{children}</div> : <p className="font-medium break-all">{value ?? "-"}</p>}
+      <p className="text-[11px] uppercase tracking-wide text-gray-500">
+        {label}
+      </p>
+      <div className="font-medium break-all text-sm">{rendered}</div>
     </div>
   );
 }
@@ -611,16 +899,19 @@ function AvatarDisplay({
             className="h-40 w-40 rounded-full object-cover ring-4 ring-white shadow-sm outline outline-gray-200 group-hover:outline-emerald-400 transition"
             onError={(e) => {
               const target = e.currentTarget as HTMLImageElement;
-              target.style.display = 'none';
-              const fallback = target.parentElement?.querySelector('[data-fallback-avatar]') as HTMLElement | null;
-              if (fallback) fallback.style.display = 'flex';
+              target.style.display = "none";
+              const fallback = target.parentElement?.querySelector(
+                "[data-fallback-avatar]"
+              ) as HTMLElement | null;
+              if (fallback) fallback.style.display = "flex";
             }}
           />
         ) : null}
         <div
           data-fallback-avatar
-          className={`absolute inset-0 ${image ? 'hidden' : 'flex'
-            } items-center justify-center rounded-full text-white text-6xl font-semibold bg-gradient-to-br ${gradient} shadow-sm ring-4 ring-white select-none`}
+          className={`absolute inset-0 ${
+            image ? "hidden" : "flex"
+          } items-center justify-center rounded-full text-white text-6xl font-semibold bg-gradient-to-br ${gradient} shadow-sm ring-4 ring-white select-none`}
         >
           {initial}
         </div>
@@ -639,25 +930,40 @@ function AvatarDisplay({
 }
 
 // Order Detail Modal using non-blocking overlay
-function OrderDetailModal({ open, onOpenChange, order }: { open: boolean; onOpenChange: (v: boolean) => void; order: OrderHistoryItem | null }) {
+function OrderDetailModal({
+  open,
+  onOpenChange,
+  order,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  order: OrderHistoryItem | null;
+}) {
   if (!open || !order) return null;
   const orderId = order.midtransOrderId || order.id;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={() => onOpenChange(false)} />
+      <div
+        className="absolute inset-0 bg-black/40"
+        onClick={() => onOpenChange(false)}
+      />
       <div className="relative z-10 w-full max-w-lg rounded-xl border bg-white shadow-xl">
         <div className="p-5 border-b">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="text-lg font-semibold">Detail Pembelian</h3>
-              <p className="text-xs text-gray-600 mt-1">Order: <span className="font-mono">{orderId}</span></p>
+              <p className="text-xs text-gray-600 mt-1">
+                Order: <span className="font-mono">{orderId}</span>
+              </p>
             </div>
           </div>
         </div>
         <div className="p-5 space-y-4 max-h-[70vh] overflow-auto">
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <p className="text-[11px] uppercase text-gray-500">Status Order</p>
+              <p className="text-[11px] uppercase text-gray-500">
+                Status Order
+              </p>
               <p className="font-medium">{order.status}</p>
             </div>
             <div>
@@ -668,9 +974,18 @@ function OrderDetailModal({ open, onOpenChange, order }: { open: boolean; onOpen
           <div className="rounded-lg border bg-gray-50 p-4">
             <p className="text-[11px] uppercase text-gray-500 mb-2">Penerima</p>
             <div className="text-sm grid gap-1">
-              <p><span className="text-gray-500">Nama:</span> {order.recipientName || '-'}</p>
-              <p><span className="text-gray-500">Telepon:</span> {order.recipientPhone || '-'}</p>
-              <p><span className="text-gray-500">Alamat:</span> {order.recipientAddress || '-'}</p>
+              <p>
+                <span className="text-gray-500">Nama:</span>{" "}
+                {order.recipientName || "-"}
+              </p>
+              <p>
+                <span className="text-gray-500">Telepon:</span>{" "}
+                {order.recipientPhone || "-"}
+              </p>
+              <p>
+                <span className="text-gray-500">Alamat:</span>{" "}
+                {order.recipientAddress || "-"}
+              </p>
             </div>
           </div>
           <div>
@@ -686,19 +1001,30 @@ function OrderDetailModal({ open, onOpenChange, order }: { open: boolean; onOpen
                   </tr>
                 </thead>
                 <tbody>
-                  {order.items.map(it => (
-                    <tr key={`${it.productId}-${it.name}`} className="odd:bg-white even:bg-gray-50">
+                  {order.items.map((it) => (
+                    <tr
+                      key={`${it.productId}-${it.name}`}
+                      className="odd:bg-white even:bg-gray-50"
+                    >
                       <td className="py-2 px-3">{it.name}</td>
                       <td className="py-2 px-3">{it.qty}</td>
-                      <td className="py-2 px-3 text-right">{formatIDR(it.price)}</td>
-                      <td className="py-2 px-3 text-right">{formatIDR(it.price * it.qty)}</td>
+                      <td className="py-2 px-3 text-right">
+                        {formatIDR(it.price)}
+                      </td>
+                      <td className="py-2 px-3 text-right">
+                        {formatIDR(it.price * it.qty)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td className="py-2 px-3" colSpan={3}><span className="font-medium">Total</span></td>
-                    <td className="py-2 px-3 text-right font-semibold">{formatIDR(order.total)}</td>
+                    <td className="py-2 px-3" colSpan={3}>
+                      <span className="font-medium">Total</span>
+                    </td>
+                    <td className="py-2 px-3 text-right font-semibold">
+                      {formatIDR(order.total)}
+                    </td>
                   </tr>
                 </tfoot>
               </table>
@@ -706,7 +1032,12 @@ function OrderDetailModal({ open, onOpenChange, order }: { open: boolean; onOpen
           </div>
         </div>
         <div className="p-4 border-t flex justify-end">
-          <button onClick={() => onOpenChange(false)} className="h-9 px-4 rounded-md border bg-white hover:bg-gray-50 text-sm">Tutup</button>
+          <button
+            onClick={() => onOpenChange(false)}
+            className="h-9 px-4 rounded-md border bg-white hover:bg-gray-50 text-sm"
+          >
+            Tutup
+          </button>
         </div>
       </div>
     </div>
@@ -716,7 +1047,10 @@ function OrderDetailModal({ open, onOpenChange, order }: { open: boolean; onOpen
 // Simple Rupiah formatter (fallback jika Intl tidak support)
 function formatIDR(value: number) {
   try {
-    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(value);
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+    }).format(value);
   } catch {
     return `Rp ${value.toLocaleString("id-ID")}`;
   }
@@ -725,21 +1059,41 @@ function formatIDR(value: number) {
 // Provide consistent badge coloring for order status
 function badgeColor(status: string) {
   switch (status) {
-    case 'Pending': return 'bg-gray-100 text-gray-700 border border-gray-200';
-    case 'Diproses': return 'bg-blue-100 text-blue-700 border border-blue-200';
-    case 'Dikirim': return 'bg-amber-100 text-amber-700 border border-amber-300';
-    case 'Selesai': return 'bg-emerald-100 text-emerald-700 border border-emerald-200';
-    case 'Dibatalkan': return 'bg-red-100 text-red-700 border border-red-200';
-    default: return 'bg-gray-100 text-gray-600 border border-gray-200';
+    case "Pending":
+      return "bg-gray-100 text-gray-700 border border-gray-200";
+    case "Diproses":
+      return "bg-blue-100 text-blue-700 border border-blue-200";
+    case "Dikirim":
+      return "bg-amber-100 text-amber-700 border border-amber-300";
+    case "Selesai":
+      return "bg-emerald-100 text-emerald-700 border border-emerald-200";
+    case "Dibatalkan":
+      return "bg-red-100 text-red-700 border border-red-200";
+    default:
+      return "bg-gray-100 text-gray-600 border border-gray-200";
   }
 }
 
 // Small stat card component
-function StatCard({ title, value, accent }: { title: string; value: string; accent?: string }) {
+function StatCard({
+  title,
+  value,
+  accent,
+}: {
+  title: string;
+  value: string;
+  accent?: string;
+}) {
   return (
     <div className="relative rounded-xl border bg-white p-5 shadow-sm overflow-hidden">
-      {accent && <div className={`pointer-events-none absolute inset-x-0 -top-10 h-24 bg-gradient-to-b ${accent}`} />}
-      <p className="text-[11px] uppercase tracking-wide text-gray-500">{title}</p>
+      {accent && (
+        <div
+          className={`pointer-events-none absolute inset-x-0 -top-10 h-24 bg-gradient-to-b ${accent}`}
+        />
+      )}
+      <p className="text-[11px] uppercase tracking-wide text-gray-500">
+        {title}
+      </p>
       <p className="mt-1 text-2xl font-semibold">{value}</p>
     </div>
   );

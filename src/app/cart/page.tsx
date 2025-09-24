@@ -41,7 +41,11 @@ export default function CartPage() {
   const [openCheckoutInfo, setOpenCheckoutInfo] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(false);
   const [submittingInfo, setSubmittingInfo] = useState(false);
-  const [info, setInfo] = useState({ recipientName: "", recipientPhone: "", recipientAddress: "" });
+  const [info, setInfo] = useState({
+    recipientName: "",
+    recipientPhone: "",
+    recipientAddress: "",
+  });
 
   useEffect(() => {
     fetchCart();
@@ -119,9 +123,16 @@ export default function CartPage() {
   const openInfoModal = async () => {
     setCheckingProfile(true);
     try {
-      const res = await fetch("/api/auth/me", { cache: "no-store", credentials: "include" });
+      const res = await fetch("/api/auth/me", {
+        cache: "no-store",
+        credentials: "include",
+      });
       if (res.ok) {
-        const me: { name?: string; phone?: string | null; address?: string | null } = await res.json();
+        const me: {
+          name?: string;
+          phone?: string | null;
+          address?: string | null;
+        } = await res.json();
         setInfo({
           recipientName: (me.name ?? "").toString(),
           recipientPhone: (me.phone ?? "").toString(),
@@ -144,7 +155,12 @@ export default function CartPage() {
     try {
       setSubmittingInfo(true);
       // simple client validation
-      if (!info.recipientName.trim() || !info.recipientPhone.trim() || !info.recipientAddress.trim()) return;
+      if (
+        !info.recipientName.trim() ||
+        !info.recipientPhone.trim() ||
+        !info.recipientAddress.trim()
+      )
+        return;
       const save = await fetch("/api/cart/checkout-info", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -167,11 +183,11 @@ export default function CartPage() {
         onSuccess: () => {
           fetchCart();
         },
-        onPending: () => { },
+        onPending: () => {},
         onError: (e: unknown) => {
           console.error("pay error", e);
         },
-        onClose: () => { },
+        onClose: () => {},
       });
     } catch (e) {
       console.error(e);
@@ -336,40 +352,80 @@ export default function CartPage() {
                   <p className="text-xl font-semibold">
                     Total: Rp {cart.total.toLocaleString()}
                   </p>
-                  <Button onClick={handleCheckout} disabled={paying || checkingProfile} size="lg">
-                    {paying ? "Processing..." : checkingProfile ? "Preparing..." : "Checkout"}
+                  <Button
+                    onClick={handleCheckout}
+                    disabled={paying || checkingProfile}
+                    size="lg"
+                  >
+                    {paying
+                      ? "Processing..."
+                      : checkingProfile
+                      ? "Preparing..."
+                      : "Checkout"}
                   </Button>
                 </div>
               </CardContent>
             </Card>
             {/* Modal collect checkout info */}
-            <AlertDialog open={openCheckoutInfo} onOpenChange={setOpenCheckoutInfo}>
+            <AlertDialog
+              open={openCheckoutInfo}
+              onOpenChange={setOpenCheckoutInfo}
+            >
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Data Penerima</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Isi nama penerima, nomor telepon, dan alamat pengiriman untuk melanjutkan pembayaran.
+                    Isi nama penerima, nomor telepon, dan alamat pengiriman
+                    untuk melanjutkan pembayaran.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="space-y-3 py-1">
                   <div className="space-y-1.5">
                     <Label htmlFor="recipientName">Nama Penerima</Label>
-                    <Input id="recipientName" value={info.recipientName} onChange={(e) => setInfo({ ...info, recipientName: e.target.value })} placeholder="Nama lengkap" />
+                    <Input
+                      id="recipientName"
+                      value={info.recipientName}
+                      onChange={(e) =>
+                        setInfo({ ...info, recipientName: e.target.value })
+                      }
+                      placeholder="Nama lengkap"
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="recipientPhone">Nomor Telepon</Label>
-                    <Input id="recipientPhone" value={info.recipientPhone} onChange={(e) => setInfo({ ...info, recipientPhone: e.target.value })} placeholder="08xxxxxxxxxx" />
+                    <Input
+                      id="recipientPhone"
+                      value={info.recipientPhone}
+                      onChange={(e) =>
+                        setInfo({ ...info, recipientPhone: e.target.value })
+                      }
+                      placeholder="08xxxxxxxxxx"
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="recipientAddress">Alamat</Label>
-                    <Input id="recipientAddress" value={info.recipientAddress} onChange={(e) => setInfo({ ...info, recipientAddress: e.target.value })} placeholder="Alamat lengkap" />
+                    <Input
+                      id="recipientAddress"
+                      value={info.recipientAddress}
+                      onChange={(e) =>
+                        setInfo({ ...info, recipientAddress: e.target.value })
+                      }
+                      placeholder="Alamat lengkap"
+                    />
                   </div>
                 </div>
                 <AlertDialogFooter>
-                  <AlertDialogCancel disabled={submittingInfo}>Batal</AlertDialogCancel>
+                  <AlertDialogCancel disabled={submittingInfo}>
+                    Batal
+                  </AlertDialogCancel>
                   <AlertDialogAction
                     onClick={submitCheckoutInfoThenPay}
-                    disabled={submittingInfo || !info.recipientName.trim() || !info.recipientPhone.trim() || !info.recipientAddress.trim()}
+                    disabled={
+                      submittingInfo ||
+                      !info.recipientName.trim() ||
+                      !info.recipientPhone.trim() ||
+                      !info.recipientAddress.trim()
+                    }
                   >
                     {submittingInfo ? "Menyimpan..." : "Lanjut Bayar"}
                   </AlertDialogAction>

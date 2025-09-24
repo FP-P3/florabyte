@@ -13,15 +13,35 @@ export async function POST(request: NextRequest) {
     }
 
     // Ensure cart has recipient info before allowing payment
-    const cartDoc = await db
-      .collection("cart")
-      .findOne({ userId: new ObjectId(userId), status: "pending" }, { projection: { recipientName: 1, recipientPhone: 1, recipientAddress: 1 } });
-    const rName = (cartDoc as { recipientName?: unknown } | null)?.recipientName as string | undefined;
-    const rPhone = (cartDoc as { recipientPhone?: unknown } | null)?.recipientPhone as string | undefined;
-    const rAddr = (cartDoc as { recipientAddress?: unknown } | null)?.recipientAddress as string | undefined;
-    if (!rName || !rName.trim() || !rPhone || !rPhone.trim() || !rAddr || !rAddr.trim()) {
+    const cartDoc = await db.collection("cart").findOne(
+      { userId: new ObjectId(userId), status: "pending" },
+      {
+        projection: {
+          recipientName: 1,
+          recipientPhone: 1,
+          recipientAddress: 1,
+        },
+      }
+    );
+    const rName = (cartDoc as { recipientName?: unknown } | null)
+      ?.recipientName as string | undefined;
+    const rPhone = (cartDoc as { recipientPhone?: unknown } | null)
+      ?.recipientPhone as string | undefined;
+    const rAddr = (cartDoc as { recipientAddress?: unknown } | null)
+      ?.recipientAddress as string | undefined;
+    if (
+      !rName ||
+      !rName.trim() ||
+      !rPhone ||
+      !rPhone.trim() ||
+      !rAddr ||
+      !rAddr.trim()
+    ) {
       return NextResponse.json(
-        { message: "Lengkapi data penerima (nama, telepon, alamat) terlebih dahulu." },
+        {
+          message:
+            "Lengkapi data penerima (nama, telepon, alamat) terlebih dahulu.",
+        },
         { status: 400 }
       );
     }
@@ -34,7 +54,13 @@ export async function POST(request: NextRequest) {
     const orderId = `FLB-${Date.now()}-${userId.slice(-6)}`;
 
     // Sanitize items -> integer rupiah, qty >= 1
-    type CartItem = { productId: string; name: string; price: number; imgUrl: string; qty: number };
+    type CartItem = {
+      productId: string;
+      name: string;
+      price: number;
+      imgUrl: string;
+      qty: number;
+    };
     const items = (cart.items as CartItem[]).map((it) => ({
       id: String(it.productId),
       name: String(it.name || "Item"),
@@ -43,7 +69,9 @@ export async function POST(request: NextRequest) {
     }));
 
     // Opsional: ongkir/discount sebagai item terpisah jika ada
-    const shippingFee = Math.round(Number((cart as { shippingFee?: number } & object).shippingFee || 0));
+    const shippingFee = Math.round(
+      Number((cart as { shippingFee?: number } & object).shippingFee || 0)
+    );
     if (shippingFee > 0)
       items.push({
         id: "shipping",
@@ -51,7 +79,9 @@ export async function POST(request: NextRequest) {
         price: shippingFee,
         quantity: 1,
       });
-    const discount = Math.round(Number((cart as { discount?: number } & object).discount || 0));
+    const discount = Math.round(
+      Number((cart as { discount?: number } & object).discount || 0)
+    );
     if (discount > 0)
       items.push({
         id: "discount",
@@ -61,11 +91,20 @@ export async function POST(request: NextRequest) {
       });
 
     const grossAmount = items.reduce(
-      (sum: number, i: { price: number; quantity: number }) => sum + i.price * i.quantity,
+      (sum: number, i: { price: number; quantity: number }) =>
+        sum + i.price * i.quantity,
       0
     );
 
-    const snap = new (midtransClient as unknown as { Snap: new (cfg: { isProduction: boolean; serverKey?: string; clientKey?: string }) => { createTransaction: (p: unknown) => Promise<{ token: string }> } }).Snap({
+    const snap = new (
+      midtransClient as unknown as {
+        Snap: new (cfg: {
+          isProduction: boolean;
+          serverKey?: string;
+          clientKey?: string;
+        }) => { createTransaction: (p: unknown) => Promise<{ token: string }> };
+      }
+    ).Snap({
       isProduction: process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true",
       serverKey: process.env.MIDTRANS_SERVER_KEY,
       clientKey: process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY,
@@ -90,9 +129,6 @@ export async function POST(request: NextRequest) {
   } catch (err: unknown) {
     console.error("create payment error:", err);
     const message = err instanceof Error ? err.message : "Error";
-    return NextResponse.json(
-      { message },
-      { status: 500 }
-    );
+    return NextResponse.json({ message }, { status: 500 });
   }
 }

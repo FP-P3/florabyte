@@ -9,11 +9,15 @@ import crypto from "crypto";
 export async function POST(request: NextRequest) {
   try {
     const body: unknown = await request.json().catch(() => ({}));
-    const safeBody = (typeof body === "object" && body !== null ? body : {}) as Record<string, unknown>;
+    const safeBody = (
+      typeof body === "object" && body !== null ? body : {}
+    ) as Record<string, unknown>;
     console.log("Midtrans notif body:", safeBody);
 
     // Validasi signature_key: sha512(order_id + status_code + gross_amount + serverKey)
-    const orderId = (safeBody.order_id as string | undefined) || (safeBody.orderId as string | undefined);
+    const orderId =
+      (safeBody.order_id as string | undefined) ||
+      (safeBody.orderId as string | undefined);
     const statusCode = String(safeBody.status_code ?? "");
     const grossAmount = String(safeBody.gross_amount ?? "");
     const signature = String(safeBody.signature_key ?? "").toLowerCase();
@@ -115,7 +119,6 @@ export async function POST(request: NextRequest) {
           const ops = Object.entries(qtyById).map(([id, qty]) => ({
             updateOne: {
               filter: { _id: new ObjectId(id) },
-              // Pastikan stock tidak minus (pipeline update)
               update: [
                 {
                   $set: {
