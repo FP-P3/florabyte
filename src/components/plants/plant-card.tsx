@@ -131,7 +131,7 @@ export function PlantCard({ plant }: PlantCardProps) {
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0">
-            <h3 className="text-[22px] md:text-[26px] leading-7 font-extrabold text-foreground break-words">
+            <h3 className="text-[22px] md:text-[26px] leading-7 font-semibold text-foreground break-words">
               {name}
             </h3>
             <p className="text-[14px] md:text-[15px] leading-6 text-muted-foreground italic">
@@ -177,17 +177,17 @@ export function PlantCard({ plant }: PlantCardProps) {
                     {meta.icon}
                   </div>
                   <div
-                    className={`text-[11px] font-bold uppercase tracking-wide ${meta.headerText}`}
+                    className={`text-[11px] font-medium uppercase tracking-wide ${meta.headerText}`}
                   >
                     {meta.label}
                   </div>
                 </div>
                 <div className={`mt-2 ${meta.daysText}`}>
-                  <span className="text-[18px] font-extrabold">
+                  <span className="text-[18px] font-semibold">
                     {hasInterval ? item?.intervalDays : "—"}
                   </span>{" "}
                   {hasInterval && (
-                    <span className="text-[12px] font-bold">days</span>
+                    <span className="text-[12px] font-medium">days</span>
                   )}
                 </div>
                 {item?.notes && (
