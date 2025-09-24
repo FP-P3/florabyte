@@ -100,7 +100,9 @@ export default function PlantDashboard() {
         // Days since creation (floored) ensures consistent cycle alignment
         const diffDays = Math.max(
           0,
-          Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24))
+          Math.floor(
+            (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
+          )
         );
         const remainder = diffDays % interval;
         const dueInDays = remainder === 0 ? 0 : interval - remainder; // 0 means due today
@@ -109,27 +111,32 @@ export default function PlantDashboard() {
         const targetDate = new Date(now);
         targetDate.setDate(targetDate.getDate() + dueInDays);
 
-        const dueDateLabel = dueInDays === 0
-          ? "Today"
-          : dueInDays === 1
-          ? "Tomorrow"
-          : targetDate.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        const dueDateLabel =
+          dueInDays === 0
+            ? "Today"
+            : dueInDays === 1
+            ? "Tomorrow"
+            : targetDate.toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+              });
 
         newTasks.push({
           id: `${p._id}_${s.type}_${targetDate.toISOString().slice(0, 10)}`,
-            plantName,
-            task: taskLabel(s.type),
-            dueDate: dueDateLabel,
-            dueInDays,
-            completed: false,
-            priority: taskPriority(s.type),
+          plantName,
+          task: taskLabel(s.type),
+          dueDate: dueDateLabel,
+          dueInDays,
+          completed: false,
+          priority: taskPriority(s.type),
         });
       }
     }
 
     newTasks.sort((a, b) => {
       if (a.dueInDays !== b.dueInDays) return a.dueInDays - b.dueInDays;
-      const rank = (p: Task) => (p.priority === "High" ? 0 : p.priority === "Medium" ? 1 : 2);
+      const rank = (p: Task) =>
+        p.priority === "High" ? 0 : p.priority === "Medium" ? 1 : 2;
       const pa = rank(a);
       const pb = rank(b);
       if (pa !== pb) return pa - pb;
