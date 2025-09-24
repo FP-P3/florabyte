@@ -12,29 +12,23 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
   const pageSize = 12;
   const [loading, setLoading] = useState(false);
 
-  // debounce search
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search.trim()), 400);
-    return () => clearTimeout(t);
-  }, [search]);
-
   useEffect(() => {
     fetchProducts();
     // reset ke page 1 jika filter berubah (kecuali saat hanya ganti page)
-  }, [selectedCategory, debouncedSearch, page]);
+  }, [selectedCategory, query, page]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
       const qs = new URLSearchParams();
-      if (debouncedSearch) qs.set("q", debouncedSearch);
+      if (query) qs.set("q", query);
       if (selectedCategory) qs.set("category", selectedCategory);
       qs.set("page", String(page));
       qs.set("pageSize", String(pageSize));
@@ -108,16 +102,32 @@ export default function ProductsPage() {
       <section className="mx-auto max-w-7xl px-4 md:px-6 py-12 md:py-16">
         {/* Search */}
         <div className="mx-auto mb-6 max-w-2xl">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setQuery(search.trim());
               setPage(1);
             }}
-            placeholder="Search products or categories..."
-            className="w-full rounded-lg border-2 border-gray-300 px-4 py-2 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-          />
+            className="flex gap-2"
+          >
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+              }}
+              placeholder="Search products or categories..."
+              className="flex-1 rounded-lg border-2 border-gray-300 px-4 py-2 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            />
+            <button
+              type="submit"
+              className="rounded-lg bg-emerald-600 text-white px-4 py-2 text-sm font-medium hover:bg-emerald-700 shadow disabled:opacity-50"
+              disabled={loading}
+              aria-label="Search products"
+            >
+              {loading && query ? 'Searching…' : 'Search'}
+            </button>
+          </form>
         </div>
 
         {/* Category cards (tanpa All, wrap pakai grid) */}
@@ -223,11 +233,10 @@ export default function ProductsPage() {
                   <button
                     key={p}
                     onClick={() => setPage(p)}
-                    className={`h-10 w-10 rounded-full font-semibold transition-all ${
-                      isActive
+                    className={`h-10 w-10 rounded-full font-semibold transition-all ${isActive
                         ? "bg-emerald-600 text-white scale-110 shadow-lg shadow-emerald-500/30"
                         : "bg-white hover:bg-gray-100 hover:border-gray-300 border border-transparent"
-                    }`}
+                      }`}
                     disabled={loading}
                   >
                     {p}
