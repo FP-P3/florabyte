@@ -12,6 +12,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
+    // Ensure user profile has phone and address before allowing payment
+    const user = await db
+      .collection("users")
+      .findOne({ _id: new ObjectId(userId) }, { projection: { phone: 1, address: 1, name: 1 } });
+    const phone = (user as any)?.phone?.toString?.().trim?.() || "";
+    const address = (user as any)?.address?.toString?.().trim?.() || "";
+    if (!phone || !address) {
+      return NextResponse.json(
+        { message: "Lengkapi profil terlebih dahulu: nomor telepon dan alamat wajib diisi." },
+        { status: 400 }
+      );
+    }
+
     const cart = await CartModel.getPendingWithProducts(userId);
     if (!cart.items.length) {
       return NextResponse.json({ message: "Cart is empty" }, { status: 400 });
