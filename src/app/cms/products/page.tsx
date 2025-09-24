@@ -4,6 +4,8 @@ import { useState, useEffect, FormEvent, useCallback, useMemo } from "react";
 import toast from "react-hot-toast";
 import Swal from "sweetalert2";
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 const CATEGORY_OPTIONS = ["tools", "pesticide", "fertilizer", "soil"] as const;
 
@@ -270,10 +272,17 @@ export default function CMSProducts() {
               className="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700 text-sm"
             >Cari</button>
           </div>
-          <button
+          <Button
+            size="lg"
             onClick={() => setShowModal(true)}
-            className="h-10 px-4 rounded-md bg-emerald-600 text-white text-sm font-medium shadow hover:bg-emerald-700 transition"
-          >Tambah</button>
+            className="bg-emerald-600 hover:bg-emerald-700"
+            title="Tambah produk baru"
+            aria-label="Tambah produk baru"
+          >
+            <Plus className="size-4" />
+            <span className="hidden sm:inline">Tambah Produk</span>
+            <span className="sm:hidden">Tambah</span>
+          </Button>
         </div>
       </div>
 

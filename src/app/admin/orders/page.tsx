@@ -81,9 +81,25 @@ export default function AdminOrdersPage() {
                     <h1 className="text-2xl font-semibold tracking-tight">Manajemen Orders</h1>
                     <p className="text-sm text-muted-foreground mt-1">Kelola status dan pantau detail pesanan.</p>
                 </div>
-                <div className="flex flex-wrap gap-2 items-center text-sm">
-                    <button onClick={fetchAll} className="h-9 px-4 rounded-md border bg-white hover:bg-gray-50 shadow-sm text-sm">Refresh</button>
-                    <a href="/cms/products" className="h-9 px-4 rounded-md bg-emerald-600 text-white text-sm font-medium shadow hover:bg-emerald-700 transition">CMS Products</a>
+                <div className="flex flex-wrap items-center gap-2">
+                    <div className="inline-flex items-stretch rounded-md border bg-white shadow-sm overflow-hidden">
+                        <button
+                            onClick={fetchAll}
+                            className="h-9 px-3 text-sm hover:bg-gray-50 flex items-center gap-2"
+                            title="Muat ulang daftar"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-gray-600"><path d="M17.65 6.35A7.95 7.95 0 0 0 12 4V1L7 6l5 5V7c2.76 0 5 2.24 5 5a5 5 0 0 1-8.9 3h-2.1A7 7 0 1 0 19 12c0-1.61-.59-3.09-1.35-4.65z" fill="currentColor" /></svg>
+                            Refresh
+                        </button>
+                        <a
+                            href="/cms/products"
+                            className="h-9 px-3 text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-2 border-l"
+                            title="Buka CMS Products"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="opacity-90"><path d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3z" fill="currentColor" /><path d="M5 5h7v2H7v10h10v-5h2v7H5V5z" fill="currentColor" /></svg>
+                            CMS Products
+                        </a>
+                    </div>
                 </div>
             </div>
             <div className="overflow-auto border rounded-xl bg-white shadow-sm">
@@ -123,8 +139,19 @@ export default function AdminOrdersPage() {
                                             )}
                                         </div>
                                     </td>
-                                    <td className="py-3.5 px-4 max-w-[360px]">
-                                        <p className="truncate" title={itemsLabel}>{itemsLabel}</p>
+                                    <td className="py-3.5 px-4 align-top">
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {o.items.map((it, idx) => (
+                                                <span
+                                                    key={idx}
+                                                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium border bg-gray-50 text-gray-700 border-gray-200"
+                                                    title={`${it.name}${it.qty > 1 ? ` x${it.qty}` : ''}`}
+                                                >
+                                                    <span className="truncate max-w-[180px]" title={it.name}>{it.name}</span>
+                                                    {it.qty > 1 && <span className="text-gray-500">×{it.qty}</span>}
+                                                </span>
+                                            ))}
+                                        </div>
                                     </td>
                                     <td className="py-3.5 px-4 tabular-nums">{formatIDR(o.total)}</td>
                                     <td className="py-3.5 px-4">
