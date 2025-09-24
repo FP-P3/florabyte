@@ -34,14 +34,14 @@ export async function GET(req: NextRequest) {
         // Collect userIds for name lookup
         const userIdSet = new Set<string>();
         carts.forEach(c => { if (c.userId) userIdSet.add(c.userId.toString()); });
-        let userMap = new Map<string, { name?: string; username?: string }>();
+        let userMap = new Map<string, { name?: string; username?: string; phone?: string | null; address?: string | null }>();
         if (userIdSet.size) {
             try {
                 const userDocs = await db.collection("users")
                     .find({ _id: { $in: Array.from(userIdSet).map(id => new (require('mongodb').ObjectId)(id)) } })
-                    .project({ name: 1, username: 1 })
+                    .project({ name: 1, username: 1, phone: 1, address: 1 })
                     .toArray();
-                userMap = new Map(userDocs.map((u: any) => [u._id.toString(), { name: u.name, username: u.username }]));
+                userMap = new Map(userDocs.map((u: any) => [u._id.toString(), { name: u.name, username: u.username, phone: u.phone ?? null, address: u.address ?? null }]));
             } catch (e) {
                 console.error('User lookup failed', e);
             }
@@ -59,11 +59,13 @@ export async function GET(req: NextRequest) {
                 price: productMap.get(pid)?.price || 0,
                 qty,
             }));
-            const userInfo = userMap.get(c.userId?.toString() || '') || {};
+            const userInfo = userMap.get(c.userId?.toString() || '') || {} as any;
             return {
                 id: c._id.toString(),
                 userId: c.userId?.toString() || '-',
                 userName: userInfo.name || userInfo.username || 'Unknown',
+                userPhone: userInfo.phone || null,
+                userAddress: userInfo.address || null,
                 items,
                 total: Number(c.total) || 0,
                 status: c.orderStatus || (c.status === 'paid' ? 'Pending' : 'Dibatalkan'),
