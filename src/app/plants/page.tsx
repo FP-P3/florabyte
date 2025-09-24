@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { PlantCard } from "@/components/plants/plant-card";
 import { PlantDoc } from "@/types/types";
-import Link from "next/link";
 import {
   Sheet,
   SheetContent,
@@ -452,9 +451,11 @@ export default function PlantDashboard() {
               {error && <p className="text-sm text-red-600">{error}</p>}
               <div className="space-y-4 md:space-y-6">
                 {plants?.map((plant, idx) => (
-                  <Link href={`/plants/${plant._id}`} key={idx}>
-                    <PlantCard plant={plant} onDelete={handleDeletePlant} />
-                  </Link>
+                  <PlantCard
+                    plant={plant}
+                    onDelete={handleDeletePlant}
+                    key={idx}
+                  />
                 ))}
                 {!loading && !error && (!plants || plants.length === 0) && (
                   <p className="text-sm text-muted-foreground">
