@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -55,6 +55,8 @@ export default function NavbarClient({ isSignedIn }: Props) {
     UserType,
     "name" | "profilePicture" | "role"
   > | null>(null);
+  const [cartCount, setCartCount] = useState<number>(0);
+  const [bump, setBump] = useState<boolean>(false);
 
   useEffect(() => {
     let ignore = false;
@@ -73,7 +75,7 @@ export default function NavbarClient({ isSignedIn }: Props) {
             profilePicture: data.profilePicture,
             role: (data as any).role,
           });
-      } catch {}
+      } catch { }
     }
     loadMe();
     return () => {
@@ -82,17 +84,64 @@ export default function NavbarClient({ isSignedIn }: Props) {
   }, []); // <- tidak tergantung isSignedIn
 
   const authed = Boolean(me) || isSignedIn;
+  const hasItems = authed && cartCount > 0;
+
+  // Ambil jumlah item cart saat user terautentikasi
+  useEffect(() => {
+    let ignore = false;
+    async function fetchCartCount() {
+      try {
+        if (!authed) return;
+        const res = await fetch("/api/cart", { cache: "no-store", credentials: "include" });
+        if (!res.ok) {
+          if (!ignore) setCartCount(0);
+          return;
+        }
+        const data = await res.json();
+        // data.items = [{qty:number}]
+        const count: number = Array.isArray(data?.items)
+          ? data.items.reduce((acc: number, it: any) => acc + Number(it?.qty || 0), 0)
+          : 0;
+        if (!ignore) {
+          setCartCount((prev) => {
+            if (prev !== count) {
+              setBump(true);
+              setTimeout(() => setBump(false), 600);
+            }
+            return count;
+          });
+        }
+      } catch {
+        if (!ignore) setCartCount(0);
+      }
+    }
+    fetchCartCount();
+
+    const handleRefresh = () => fetchCartCount();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") fetchCartCount();
+    };
+    window.addEventListener("cart:refresh", handleRefresh as any);
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", handleRefresh);
+    return () => {
+      ignore = true;
+      window.removeEventListener("cart:refresh", handleRefresh as any);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", handleRefresh);
+    };
+  }, [authed]);
 
   const baseLinks = [{ href: "/products", label: "Products" }];
 
   const authedExtra = authed
     ? [
-        { href: "/plants", label: "Dashboard" },
-        { href: "/plants/scan", label: "Scan" },
-        ...(me?.role === "admin"
-          ? [{ href: "/admin/orders", label: "Admin Orders" }]
-          : []),
-      ]
+      { href: "/plants", label: "Dashboard" },
+      { href: "/plants/scan", label: "Scan" },
+      ...(me?.role === "admin"
+        ? [{ href: "/admin/orders", label: "Admin Orders" }]
+        : []),
+    ]
     : [];
 
   return (
@@ -125,10 +174,18 @@ export default function NavbarClient({ isSignedIn }: Props) {
 
         {/* Right CTA */}
         <div className="hidden md:flex items-center gap-2">
-          {/* Tombol Cart di desktop */}
-          <Button asChild variant="ghost" size="icon" aria-label="Cart">
+          {/* Tombol Cart di desktop dengan badge */}
+          <Button asChild variant="ghost" size="icon" aria-label="Cart" className="relative">
             <Link href="/cart">
               <ShoppingCart className="h-5 w-5 text-emerald-600" />
+              {hasItems && (
+                <span
+                  className={`absolute -top-1.5 -right-1.5 grid min-w-5 h-5 place-items-center rounded-full bg-emerald-600 px-1 text-[10px] font-semibold text-white shadow ring-1 ring-white ${bump ? "animate-bounce" : ""
+                    }`}
+                >
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
             </Link>
           </Button>
 
@@ -214,7 +271,7 @@ export default function NavbarClient({ isSignedIn }: Props) {
               {/* Tambah item Cart di mobile */}
               <NavButton
                 href="/cart"
-                label="Cart"
+                label={`Cart${hasItems ? ` (${cartCount > 99 ? "99+" : cartCount})` : ""}`}
                 onClick={() => setOpen(false)}
               />
 

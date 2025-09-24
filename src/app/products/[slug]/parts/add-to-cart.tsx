@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 export default function AddToCart({ productId }: { productId: string }) {
   const [loading, setLoading] = useState(false);
   const [qty, setQty] = useState(1);
+  const router = useRouter();
 
   const add = async () => {
     try {
@@ -21,6 +23,11 @@ export default function AddToCart({ productId }: { productId: string }) {
         if (!res.ok) throw new Error(await res.text());
       }
       toast.success("Added to cart");
+      // Trigger navbar cart badge update and refresh current route
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("cart:refresh"));
+      }
+      router.refresh();
     } catch {
       toast.error("Failed to add to cart");
     } finally {

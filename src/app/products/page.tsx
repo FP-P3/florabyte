@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import ProductCard from "@/components/ProductCard";
 import Link from "next/link";
@@ -9,6 +10,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react"; // Import ikon
 type Product = any;
 
 export default function ProductsPage() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [search, setSearch] = useState("");
@@ -62,6 +64,10 @@ export default function ProductsPage() {
       });
       if (response.ok) {
         toast.success("Product added to cart!");
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("cart:refresh"));
+        }
+        router.refresh();
       } else {
         const errorData = await response.json();
         toast.error(errorData.message || "Failed to add to cart.");
@@ -234,8 +240,8 @@ export default function ProductsPage() {
                     key={p}
                     onClick={() => setPage(p)}
                     className={`h-10 w-10 rounded-full font-semibold transition-all ${isActive
-                        ? "bg-emerald-600 text-white scale-110 shadow-lg shadow-emerald-500/30"
-                        : "bg-white hover:bg-gray-100 hover:border-gray-300 border border-transparent"
+                      ? "bg-emerald-600 text-white scale-110 shadow-lg shadow-emerald-500/30"
+                      : "bg-white hover:bg-gray-100 hover:border-gray-300 border border-transparent"
                       }`}
                     disabled={loading}
                   >
