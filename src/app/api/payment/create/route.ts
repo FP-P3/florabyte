@@ -27,14 +27,37 @@ export async function POST(request: NextRequest) {
     }
 
     // Ensure user profile has phone and address before allowing payment
+    interface UserContact {
+      phone?: string | null;
+      address?: string | null;
+      name?: string;
+    }
     const user = await db
-      .collection("users")
-      .findOne({ _id: new ObjectId(userId) }, { projection: { phone: 1, address: 1, name: 1 } });
-    const phone = (user as any)?.phone?.toString?.().trim?.() || "";
-    const address = (user as any)?.address?.toString?.().trim?.() || "";
+      .collection<UserContact>("users")
+      .findOne(
+        { _id: new ObjectId(userId) },
+        { projection: { phone: 1, address: 1, name: 1 } }
+      );
+    const phone = (
+      typeof user?.phone === "string"
+        ? user.phone
+        : user?.phone
+        ? String(user.phone)
+        : ""
+    ).trim();
+    const address = (
+      typeof user?.address === "string"
+        ? user.address
+        : user?.address
+        ? String(user.address)
+        : ""
+    ).trim();
     if (!phone || !address) {
       return NextResponse.json(
-        { message: "Lengkapi profil terlebih dahulu: nomor telepon dan alamat wajib diisi." },
+        {
+          message:
+            "Lengkapi profil terlebih dahulu: nomor telepon dan alamat wajib diisi.",
+        },
         { status: 400 }
       );
     }
