@@ -37,9 +37,24 @@ import {
   Leaf,
   FileText,
   Home,
+  ShoppingCart,
 } from "lucide-react";
 import type { ProductType } from "@/types/ProductType";
 import { toSlug } from "@/lib/slug";
+import toast from "react-hot-toast";
+
+// Simple Rupiah formatter for consistent display
+function formatIDR(value: number) {
+  try {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    return `Rp ${Number(value || 0).toLocaleString("id-ID")}`;
+  }
+}
 
 interface PlantData {
   _id: string;
@@ -129,10 +144,10 @@ export default function PlantDetail() {
         lvl === "high"
           ? "text-amber-600"
           : lvl === "moderate" || lvl === "medium"
-          ? "text-amber-500"
-          : lvl === "low"
-          ? "text-amber-400"
-          : "text-amber-500";
+            ? "text-amber-500"
+            : lvl === "low"
+              ? "text-amber-400"
+              : "text-amber-500";
       return <Sun className={`h-4 w-4 ${color}`} />;
     }
     if (kind === "water") {
@@ -140,10 +155,10 @@ export default function PlantDetail() {
         lvl === "high"
           ? "text-blue-700"
           : lvl === "moderate" || lvl === "medium"
-          ? "text-blue-500"
-          : lvl === "low"
-          ? "text-blue-400"
-          : "text-blue-500";
+            ? "text-blue-500"
+            : lvl === "low"
+              ? "text-blue-400"
+              : "text-blue-500";
       return <Droplets className={`h-4 w-4 ${color}`} />;
     }
     // soil
@@ -256,6 +271,33 @@ export default function PlantDetail() {
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
       alert(message);
+    }
+  };
+
+  const handleAddRecommended = async (productId?: string) => {
+    if (!productId) return;
+    try {
+      const res = await fetch("/api/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId }),
+      });
+      if (!res.ok) {
+        let msg = "Failed to add to cart";
+        try {
+          const j = await res.json();
+          msg = j?.message || j?.error || msg;
+        } catch { }
+        toast.error(msg);
+        return;
+      }
+      toast.success("Added to cart");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("cart:refresh"));
+      }
+      router.refresh();
+    } catch (e) {
+      toast.error("Failed to add to cart");
     }
   };
 
@@ -427,16 +469,16 @@ export default function PlantDetail() {
                   "light",
                   careLevel(plant.care.light as unknown)
                 ) && (
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] leading-4 px-1.5 py-0 capitalize"
-                  >
-                    {careLevelLabel(
-                      "light",
-                      careLevel(plant.care.light as unknown)
-                    )}
-                  </Badge>
-                )}
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] leading-4 px-1.5 py-0 capitalize"
+                    >
+                      {careLevelLabel(
+                        "light",
+                        careLevel(plant.care.light as unknown)
+                      )}
+                    </Badge>
+                  )}
               </p>
               <p className="text-sm text-foreground flex items-start gap-2">
                 <span className="mt-0.5">
@@ -455,16 +497,16 @@ export default function PlantDetail() {
                   "water",
                   careLevel(plant.care.water as unknown)
                 ) && (
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] leading-4 px-1.5 py-0 capitalize"
-                  >
-                    {careLevelLabel(
-                      "water",
-                      careLevel(plant.care.water as unknown)
-                    )}
-                  </Badge>
-                )}
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] leading-4 px-1.5 py-0 capitalize"
+                    >
+                      {careLevelLabel(
+                        "water",
+                        careLevel(plant.care.water as unknown)
+                      )}
+                    </Badge>
+                  )}
               </p>
               <p className="text-sm text-foreground flex items-start gap-2">
                 <span className="mt-0.5">
@@ -483,16 +525,16 @@ export default function PlantDetail() {
                   "soil",
                   careLevel(plant.care.soil as unknown)
                 ) && (
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] leading-4 px-1.5 py-0 capitalize"
-                  >
-                    {careLevelLabel(
-                      "soil",
-                      careLevel(plant.care.soil as unknown)
-                    )}
-                  </Badge>
-                )}
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] leading-4 px-1.5 py-0 capitalize"
+                    >
+                      {careLevelLabel(
+                        "soil",
+                        careLevel(plant.care.soil as unknown)
+                      )}
+                    </Badge>
+                  )}
               </p>
               <p className="text-sm text-foreground flex items-start gap-2">
                 <span className="mt-0.5">
@@ -692,30 +734,45 @@ export default function PlantDetail() {
               No recommended products found right now.
             </div>
           ) : (
-            <div className="flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {recommended.map((p) => (
-                <Link
-                  key={String(p._id)}
-                  href={`/products/${toSlug(p.name, String(p._id))}`}
-                  className="min-w-[220px] w-56 flex-shrink-0"
-                >
-                  <div className="rounded-lg overflow-hidden border bg-card hover:shadow-md transition-shadow">
-                    <div className="relative w-full aspect-square bg-muted">
-                      <Image
-                        src={p.imgUrl}
-                        alt={p.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="p-3">
-                      <p className="text-sm font-medium line-clamp-2">
-                        {p.name}
-                      </p>
+            <div className="flex items-stretch gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {recommended.map((p) => {
+                const pid = String(p._id || "");
+                const slug = `/products/${toSlug(p.name, pid)}`;
+                const canAdd = Boolean(pid);
+                return (
+                  <div key={pid || p.name} className="min-w-[220px] w-56 flex-shrink-0">
+                    <div className="h-full rounded-lg overflow-hidden border bg-card hover:shadow-md transition-shadow flex flex-col">
+                      <Link href={slug} className="block">
+                        <div className="relative w-full aspect-square bg-muted">
+                          <Image src={p.imgUrl} alt={p.name} fill className="object-cover" />
+                        </div>
+                      </Link>
+                      <div className="p-3 flex flex-col gap-2 flex-1">
+                        <Link href={slug} className="block">
+                          <p className="text-[13px] leading-snug font-medium line-clamp-2 text-slate-800 break-words min-h-[2.6rem]">
+                            {p.name}
+                          </p>
+                        </Link>
+                        <div className="pt-0.5">
+                          <p className="text-sm font-semibold text-emerald-700">
+                            {formatIDR(Number(p.price || 0))}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 mt-auto"
+                          onClick={() => handleAddRecommended(pid)}
+                          disabled={!canAdd}
+                          aria-label={`Add ${p.name} to cart`}
+                        >
+                          <ShoppingCart className="h-4 w-4 mr-2" />
+                          Add to Cart
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </Link>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
