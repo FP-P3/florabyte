@@ -164,12 +164,41 @@ export default function NavbarClient({ isSignedIn }: Props) {
           </SheetTrigger>
           <SheetContent side="right" className="w-80">
             <SheetHeader>
-              <SheetTitle className="flex items-center gap-2">
-                <span className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-600 text-white">
-                  <Leaf className="h-4 w-4" />
-                </span>
-                Florabyte
-              </SheetTitle>
+              {authed && me ? (
+                <SheetTitle>
+                  <Link
+                    href="/profile"
+                    className="flex items-center gap-3"
+                    onClick={() => setOpen(false)}
+                  >
+                    {me.profilePicture ? (
+                      <Image
+                        src={me.profilePicture}
+                        alt={me.name ? `${me.name}'s avatar` : "Profile"}
+                        width={32}
+                        height={32}
+                        className="h-8 w-8 rounded-full object-cover border"
+                      />
+                    ) : (
+                      <span className="grid h-8 w-8 place-items-center rounded-full bg-emerald-600 text-white border">
+                        {me.name ? (
+                          me.name.charAt(0).toUpperCase()
+                        ) : (
+                          <Leaf className="h-4 w-4" />
+                        )}
+                      </span>
+                    )}
+                    <span className="font-medium">{me.name || "Profile"}</span>
+                  </Link>
+                </SheetTitle>
+              ) : (
+                <SheetTitle className="flex items-center gap-2">
+                  <span className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-600 text-white">
+                    <Leaf className="h-4 w-4" />
+                  </span>
+                  Florabyte
+                </SheetTitle>
+              )}
             </SheetHeader>
 
             <div className="mt-4 flex flex-col gap-1">
@@ -205,31 +234,7 @@ export default function NavbarClient({ isSignedIn }: Props) {
 
               <Separator className="my-2" />
 
-              {authed ? (
-                <Button
-                  asChild
-                  className="w-full"
-                  variant="ghost"
-                  onClick={() => setOpen(false)}
-                >
-                  <Link href="/profile" className="flex items-center gap-3">
-                    {me?.profilePicture ? (
-                      <Image
-                        src={me.profilePicture}
-                        alt={me.name ? `${me.name}'s avatar` : "Profile"}
-                        width={28}
-                        height={28}
-                        className="h-7 w-7 rounded-full object-cover border"
-                      />
-                    ) : (
-                      <span className="grid h-7 w-7 place-items-center rounded-full bg-emerald-600 text-white border">
-                        <Leaf className="h-4 w-4" />
-                      </span>
-                    )}
-                    <span>Profile</span>
-                  </Link>
-                </Button>
-              ) : (
+              {!authed && (
                 <Button
                   asChild
                   className="w-full"
