@@ -9,6 +9,21 @@ type ProductDoc = {
   imgUrl?: string;
 };
 
+// Define the cart document shape used in this model
+type CartDoc = {
+  _id: ObjectId;
+  userId: ObjectId;
+  productIds: ObjectId[]; // duplicates represent quantity
+  total: number;
+  status: string; // "pending" | potentially future statuses
+  midtransOrderId?: string;
+  recipientName?: string;
+  recipientPhone?: string;
+  recipientAddress?: string;
+  createdAt: Date;
+  updatedAt?: Date;
+};
+
 class CartModel {
   static async create(userId: string, productId: string) {
     if (!userId || !ObjectId.isValid(userId)) {
@@ -51,7 +66,7 @@ class CartModel {
       };
       const insertRes = await db
         .collection<CartDoc>("cart")
-        .insertOne(newDoc as Omit<CartDoc, "_id"> & { createdAt: Date });
+        .insertOne(newDoc as unknown as CartDoc);
       return {
         cartId: insertRes.insertedId.toString(),
         total: newDoc.total,
