@@ -42,6 +42,7 @@ import {
 import type { ProductType } from "@/types/ProductType";
 import { toSlug } from "@/lib/slug";
 import toast from "react-hot-toast";
+import ScrollFadeX from "@/components/ui/scroll-fade";
 
 // Simple Rupiah formatter for consistent display
 function formatIDR(value: number) {
@@ -734,7 +735,7 @@ export default function PlantDetail() {
               No recommended products found right now.
             </div>
           ) : (
-            <div className="flex items-stretch gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <ScrollFadeX contentClassName="items-stretch">
               {recommended.map((p) => {
                 const pid = String(p._id || "");
                 const slug = `/products/${toSlug(p.name, pid)}`;
@@ -773,7 +774,7 @@ export default function PlantDetail() {
                   </div>
                 );
               })}
-            </div>
+            </ScrollFadeX>
           )}
         </CardContent>
       </Card>
