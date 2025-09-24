@@ -45,6 +45,7 @@ export interface PlantAnalysis {
   schedule: ScheduleItem[];
   notes: string[];
   altCandidates: AltCandidate[];
+  reason?: string;
 }
 
 export interface ProductRecommendation {

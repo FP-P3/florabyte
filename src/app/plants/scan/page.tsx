@@ -384,27 +384,6 @@ export default function PlantScannerPage() {
     return (
       <div className="min-h-screen bg-background p-4 animate-fadeIn">
         <div className="mx-auto max-w-md">
-          {error && (
-            <Alert variant="destructive" className="mb-4 rounded-xl">
-              <AlertDescription>
-                <div className="space-y-2">
-                  <p className="font-medium text-[15px] tracking-[0.01em]">
-                    {error.title}
-                  </p>
-                  {error.notes?.length ? (
-                    <ul className="list-disc pl-5 text-sm">
-                      {error.notes.map((n, i) => (
-                        <li key={i} className="text-[15px] tracking-[0.01em]">
-                          {n}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
-
           <div className="text-center mb-6">
             <h1 className="text-2xl font-heading font-semibold mb-2">
               Preview Your Plant
@@ -425,6 +404,35 @@ export default function PlantScannerPage() {
                   height={400}
                 />
               </div>
+              {error && (
+                <Alert
+                  variant="destructive"
+                  className="mb-4 rounded-xl border-none shadow-none"
+                >
+                  <AlertDescription>
+                    <div className="space-y-2">
+                      <p className="font-medium text-[20px] tracking-[0.01em] text-center">
+                        Plant Unidentified
+                      </p>
+                      <p className="font-medium text-[15px] tracking-[0.01em] text-center">
+                        {error.title}
+                      </p>
+                      {error.notes?.length ? (
+                        <ul className="list-disc pl-5 text-sm">
+                          {error.notes.map((n, i) => (
+                            <li
+                              key={i}
+                              className="text-[15px] tracking-[0.01em]"
+                            >
+                              {n}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
               <p className="text-sm text-muted-foreground text-center text-[15px] tracking-[0.01em]">
                 {selectedFile?.name}
               </p>

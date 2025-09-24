@@ -54,7 +54,8 @@ You are a botanist expert. Analyze the following PHOTO and identify whether it c
       "query": "string",
       "keywords": ["string"]
     }
-  }
+  },
+  "reason": "string|null"
 }
 
 DECISION RULES:
@@ -62,11 +63,13 @@ DECISION RULES:
   - "isPlant": false
   - "confidence" <= 0.6
   - all "label" fields = null, "part"="unknown", "plantingPlan"={}, "care"={}, "schedule"=[], "altCandidates":[], "productRecommendations": { "vectorSearch": { "query": "", "keywords": [] } }
+  - "reason" must be a **specific explanation** (e.g., "object is furniture", "image shows artificial plant", "picture is an animal", "image too blurry to identify")
 - If it IS a plant:
   - fill in label according to certainty level (can stop at genus/family if unsure)
   - "suppliesNeeded" must be brief (1–3 words each)
   - "productRecommendations.vectorSearch.query" = a short sentence (max 200 characters) for embedding-based product search. Combine care needs: fertilizers, media, tools, pesticides, etc.
   - "productRecommendations.vectorSearch.keywords" = array of 6–12 relevant product terms/phrases
+  - "reason" = null
 
 GUIDELINES:
 - Use only visual cues from the image.
@@ -137,7 +140,7 @@ export async function POST(request: Request) {
       return new Response(
         JSON.stringify({
           accepted: false,
-          reason: "Gambar bukan tanaman atau confidence < 0.6",
+          reason: aiJson?.reason || "Unidentified",
           ai: aiJson,
         }),
         { status: 400 }
