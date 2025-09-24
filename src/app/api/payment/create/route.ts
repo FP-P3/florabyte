@@ -5,6 +5,20 @@ import { db } from "@/db/config/mongodb";
 import { ObjectId } from "mongodb";
 import * as midtransClient from "midtrans-client"; // ESM namespace import
 
+interface CartItemUI {
+  productId: string;
+  name: string;
+  price: number;
+  qty: number;
+}
+
+interface MidtransItemParam {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const userId = request.headers.get("x-user-id");
@@ -20,37 +34,25 @@ export async function POST(request: NextRequest) {
     const orderId = `FLB-${Date.now()}-${userId.slice(-6)}`;
 
     // Sanitize items -> integer rupiah, qty >= 1
-    const items = cart.items.map((it: any) => ({
-      id: String(it.productId),
-      name: String(it.name || "Item"),
-      price: Math.round(Number(it.price) || 0),
-      quantity: Math.max(1, Number(it.qty) || 1),
-    }));
-
-    // Opsional: ongkir/discount sebagai item terpisah jika ada
-    const shippingFee = Math.round(Number((cart as any).shippingFee || 0));
-    if (shippingFee > 0)
-      items.push({
-        id: "shipping",
-        name: "Shipping Fee",
-        price: shippingFee,
-        quantity: 1,
-      });
-    const discount = Math.round(Number((cart as any).discount || 0));
-    if (discount > 0)
-      items.push({
-        id: "discount",
-        name: "Discount",
-        price: -discount,
-        quantity: 1,
-      });
+    const items: MidtransItemParam[] = (cart.items as CartItemUI[]).map(
+      (it) => ({
+        id: String(it.productId),
+        name: it.name || "Item",
+        price: Math.round(it.price || 0),
+        quantity: Math.max(1, it.qty || 1),
+      })
+    );
 
     const grossAmount = items.reduce(
-      (sum: number, i: any) => sum + i.price * i.quantity,
+      (sum: number, i) => sum + i.price * i.quantity,
       0
     );
 
-    const snap = new (midtransClient as any).Snap({
+    type SnapCtorType = new (opts: Record<string, unknown>) => {
+      createTransaction: (p: unknown) => Promise<{ token: string }>;
+    };
+    const SnapCtor = (midtransClient as unknown as { Snap: SnapCtorType }).Snap;
+    const snap = new SnapCtor({
       isProduction: process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true",
       serverKey: process.env.MIDTRANS_SERVER_KEY,
       clientKey: process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY,
@@ -72,11 +74,9 @@ export async function POST(request: NextRequest) {
       );
 
     return NextResponse.json({ token: trx.token, orderId });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Error";
     console.error("create payment error:", err);
-    return NextResponse.json(
-      { message: err?.message || "Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ message }, { status: 500 });
   }
 }
