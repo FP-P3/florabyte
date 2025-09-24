@@ -4,17 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Leaf,
-  Camera,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  Plus,
-} from "lucide-react";
+import { Calendar, CheckCircle2, Clock, Plus } from "lucide-react";
 import { PlantCard } from "@/components/plants/plant-card";
 import { PlantDoc } from "@/types/types";
-import Link from "next/link";
 
 interface Task {
   id: string;
@@ -210,7 +202,7 @@ export default function PlantDashboard() {
       <div className="mx-auto max-w-7xl">
         <div className="flex">
           {/* Main */}
-          <main className="flex-1 p-4 md:p-6">
+          <main className="flex-1 p-3 sm:p-4 md:p-6">
             {/* Desktop header + Add Plant */}
             <div className="hidden md:flex items-center justify-between mb-8">
               <div>
@@ -227,8 +219,21 @@ export default function PlantDashboard() {
               </Button>
             </div>
 
+            {/* Mobile header */}
+            <div className="md:hidden mb-5">
+              <h1 className="text-2xl font-bold text-foreground">Plants</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Care tasks & collection overview
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" className="gap-1 h-8 px-3">
+                  <Plus className="h-4 w-4" /> Add Plant
+                </Button>
+              </div>
+            </div>
+
             {/* Task Sections */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6 mb-6 md:mb-8">
               {/* Today */}
               <Card className="md:h-[360px]">
                 <CardHeader className="py-4 md:py-6">
@@ -362,11 +367,13 @@ export default function PlantDashboard() {
                 <p className="text-sm text-muted-foreground">Loading plants…</p>
               )}
               {error && <p className="text-sm text-red-600">{error}</p>}
-              <div className="space-y-4 md:space-y-6">
+              <div className="space-y-4 sm:space-y-5 md:space-y-6">
                 {plants?.map((plant, idx) => (
-                  <Link href={`/plants/${plant._id}`} key={idx}>
-                    <PlantCard plant={plant} onDelete={handleDeletePlant} />
-                  </Link>
+                  <PlantCard
+                    plant={plant}
+                    onDelete={handleDeletePlant}
+                    key={idx}
+                  />
                 ))}
                 {!loading && !error && (!plants || plants.length === 0) && (
                   <p className="text-sm text-muted-foreground">
