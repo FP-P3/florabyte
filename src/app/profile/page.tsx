@@ -466,7 +466,7 @@ export default function Profile() {
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard title="Total Order" value={totalOrders.toString()} accent="from-emerald-500/10 to-emerald-500/0" />
         <StatCard title="Dibatalkan" value={cancelledOrders.toString()} accent="from-amber-500/10 to-amber-500/0" />
-        <StatCard title="Total Dibelanjakan" value={formatIDR(totalSpent)} accent="from-sky-500/10 to-sky-500/0" />
+        <StatCard title="Total Pembelian" value={formatIDR(totalSpent)} accent="from-sky-500/10 to-sky-500/0" />
       </section>
 
       {/* Order History */}
