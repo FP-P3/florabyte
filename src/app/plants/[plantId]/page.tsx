@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -25,37 +25,44 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { toSlug } from "@/lib/slug";
 import {
   Trash2,
   Droplets,
+  Droplet,
   Sun,
+  CloudSun,
+  Moon,
   Sprout,
+  Layers,
   Calendar,
+  CalendarPlus,
   AlertTriangle,
   Package,
-  Layers,
+  Scissors,
   Leaf,
   FileText,
   Home,
-  ShoppingCart,
 } from "lucide-react";
-import type { ProductType } from "@/types/ProductType";
-import { toSlug } from "@/lib/slug";
-import toast from "react-hot-toast";
+// (Removed unused ProductType import)
 
-// Simple Rupiah formatter for consistent display
-function formatIDR(value: number) {
-  try {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      maximumFractionDigits: 0,
-    }).format(value);
-  } catch {
-    return `Rp ${Number(value || 0).toLocaleString("id-ID")}`;
-  }
+// New flexible types to accommodate updated backend shape
+type DateValue = string | { $date: string };
+interface CareAspectObj {
+  level: string;
+  explanation: string;
 }
-
+type CareAspect = string | CareAspectObj;
+interface RecommendedProduct {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  imgUrl: string;
+  category: string;
+  score?: number;
+}
 interface PlantData {
   _id: string;
   label: {
@@ -72,9 +79,9 @@ interface PlantData {
     steps: string[];
   };
   care: {
-    light: string | { level?: string; explanation?: string };
-    water: string | { level?: string; explanation?: string };
-    soil: string | { level?: string; explanation?: string };
+    light: CareAspect;
+    water: CareAspect;
+    soil: CareAspect;
     commonIssues: string[];
     suppliesNeeded: string[];
   };
@@ -84,19 +91,10 @@ interface PlantData {
     notes: string;
   }>;
   notes: string[];
+  recommendedProducts?: RecommendedProduct[];
   userId: string;
-  createdAt: string;
-  updatedAt: string;
-  recommendedProducts?: Array<{
-    _id?: string;
-    name: string;
-    description: string;
-    price: number;
-    stock: number;
-    imgUrl: string;
-    category: string;
-    score?: number;
-  }>;
+  createdAt: DateValue;
+  updatedAt: DateValue;
 }
 
 export default function PlantDetail() {
@@ -105,80 +103,7 @@ export default function PlantDetail() {
   const [plant, setPlant] = useState<PlantData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [recommended, setRecommended] = useState<
-    Array<ProductType & { slug?: string }>
-  >([]);
-  const [loadingRec, setLoadingRec] = useState<boolean>(false);
-  const careText = (val: unknown): string => {
-    if (typeof val === "string") return val;
-    if (
-      typeof val === "object" &&
-      val !== null &&
-      "explanation" in (val as Record<string, unknown>)
-    ) {
-      const v = val as { explanation?: unknown };
-      return typeof v.explanation === "string" ? v.explanation : "";
-    }
-    return "";
-  };
-
-  const careLevel = (val: unknown): string | null => {
-    if (
-      typeof val === "object" &&
-      val !== null &&
-      "level" in (val as Record<string, unknown>)
-    ) {
-      const v = val as { level?: unknown };
-      if (typeof v.level === "string") return v.level.toLowerCase();
-    }
-    return null;
-  };
-
-  const careLevelIcon = (
-    kind: "light" | "water" | "soil",
-    level: string | null
-  ) => {
-    const lvl = (level || "").toLowerCase();
-    if (kind === "light") {
-      const color =
-        lvl === "high"
-          ? "text-amber-600"
-          : lvl === "moderate" || lvl === "medium"
-            ? "text-amber-500"
-            : lvl === "low"
-              ? "text-amber-400"
-              : "text-amber-500";
-      return <Sun className={`h-4 w-4 ${color}`} />;
-    }
-    if (kind === "water") {
-      const color =
-        lvl === "high"
-          ? "text-blue-700"
-          : lvl === "moderate" || lvl === "medium"
-            ? "text-blue-500"
-            : lvl === "low"
-              ? "text-blue-400"
-              : "text-blue-500";
-      return <Droplets className={`h-4 w-4 ${color}`} />;
-    }
-    // soil
-    const soilColor = lvl.includes("drain")
-      ? "text-emerald-600"
-      : "text-emerald-500";
-    return <Layers className={`h-4 w-4 ${soilColor}`} />;
-  };
-
-  const careLevelLabel = (
-    kind: "light" | "water" | "soil",
-    level: string | null
-  ): string | null => {
-    if (!level) return null;
-    const lvl = level.toLowerCase();
-    if (kind === "light") {
-      if (lvl === "high" || lvl.includes("full")) return "full sun";
-    }
-    return level;
-  };
+  // Removed unused recommended products fallback & legacy care helpers (careText, careLevel*, etc.)
 
   useEffect(() => {
     const load = async () => {
@@ -203,58 +128,6 @@ export default function PlantDetail() {
     if (params?.plantId) load();
   }, [params?.plantId]);
 
-  // Load recommended products: prefer saved recommendations, fallback to query
-  useEffect(() => {
-    const fetchRecommended = async () => {
-      if (!plant) return;
-      try {
-        setLoadingRec(true);
-        if (
-          Array.isArray(plant.recommendedProducts) &&
-          plant.recommendedProducts.length > 0
-        ) {
-          const items = plant.recommendedProducts.map((p) => ({
-            // coerce to ProductType shape subset used by UI
-            _id: String(p._id ?? ""),
-            name: p.name,
-            description: p.description,
-            price: p.price,
-            stock: p.stock,
-            imgUrl: p.imgUrl,
-            category: p.category,
-          })) as unknown as ProductType[];
-          setRecommended(items);
-          return;
-        }
-        const supplies = plant.care?.suppliesNeeded || [];
-        const labelBits = [plant.label?.commonName, plant.label?.scientificName]
-          .filter(Boolean)
-          .join(" ");
-        const qBase = [...supplies].join(" ");
-        const q = (qBase || labelBits || "").slice(0, 200);
-        const params = new URLSearchParams();
-        if (q) params.set("q", q);
-        params.set("pageSize", "8");
-        const res = await fetch(`/api/products?${params.toString()}`, {
-          cache: "no-store",
-        });
-        if (!res.ok)
-          throw new Error(`Failed to load recommendations (${res.status})`);
-        const data = await res.json();
-        const items: ProductType[] = Array.isArray(data?.items)
-          ? (data.items as ProductType[])
-          : [];
-        setRecommended(items);
-      } catch (e) {
-        console.warn(e);
-        setRecommended([]);
-      } finally {
-        setLoadingRec(false);
-      }
-    };
-    fetchRecommended();
-  }, [plant]);
-
   const handleDeletePlant = async () => {
     if (!plant?._id) return;
     try {
@@ -274,43 +147,38 @@ export default function PlantDetail() {
     }
   };
 
-  const handleAddRecommended = async (productId?: string) => {
-    if (!productId) return;
-    try {
-      const res = await fetch("/api/cart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId }),
-      });
-      if (!res.ok) {
-        let msg = "Failed to add to cart";
-        try {
-          const j = await res.json();
-          msg = j?.message || j?.error || msg;
-        } catch { }
-        toast.error(msg);
-        return;
-      }
-      toast.success("Added to cart");
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("cart:refresh"));
-      }
-      router.refresh();
-    } catch (e) {
-      toast.error("Failed to add to cart");
-    }
-  };
-
-  const getScheduleIcon = (type: string) => {
+  const getScheduleMeta = (type: string) => {
     switch (type) {
       case "water":
-        return <Droplets className="h-4 w-4 text-blue-500" />;
-      case "inspect":
-        return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+        return {
+          icon: <Droplets className="h-6 w-6 text-sky-600" />,
+          card: "bg-sky-50 border border-sky-200",
+        };
       case "fertilize":
-        return <Sprout className="h-4 w-4 text-green-500" />;
+        return {
+          icon: <Sprout className="h-6 w-6 text-emerald-600" />,
+          card: "bg-emerald-50 border border-emerald-200",
+        };
+      case "prune":
+        return {
+          icon: <Scissors className="h-6 w-6 text-rose-600" />,
+          card: "bg-rose-50 border border-rose-200",
+        };
+      case "repot":
+        return {
+          icon: <Package className="h-6 w-6 text-indigo-600" />,
+          card: "bg-indigo-50 border border-indigo-200",
+        };
+      case "inspect":
+        return {
+          icon: <AlertTriangle className="h-6 w-6 text-amber-600" />,
+          card: "bg-amber-50 border border-amber-200",
+        };
       default:
-        return <Calendar className="h-4 w-4" />;
+        return {
+          icon: <Calendar className="h-6 w-6 text-primary" />,
+          card: "bg-muted border border-border",
+        };
     }
   };
 
@@ -324,6 +192,135 @@ export default function PlantDetail() {
     } else {
       return `${days} day${days > 1 ? "s" : ""}`;
     }
+  };
+
+  // (renderCareAspect removed – inlined in new care instructions layout)
+
+  // Helpers for new level pill UI
+  const normalizeLevel = (raw: string | undefined) => {
+    if (!raw) return "";
+    const picked = raw.includes("|") ? raw.split("|").pop() : raw; // take last part after |
+    return picked
+      ?.trim()
+      .split(/\s+/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+  };
+
+  const getLevelMeta = (
+    aspect: "light" | "water" | "soil",
+    levelRaw: string
+  ) => {
+    const lvl = levelRaw.toLowerCase();
+    if (aspect === "light") {
+      if (lvl.includes("full"))
+        return {
+          icon: <Sun className="h-3.5 w-3.5" />,
+          bg: "bg-amber-100",
+          text: "text-amber-700",
+        };
+      if (lvl.includes("partial") || lvl.includes("part"))
+        return {
+          icon: <CloudSun className="h-3.5 w-3.5" />,
+          bg: "bg-lime-100",
+          text: "text-lime-700",
+        };
+      if (lvl.includes("low") || lvl.includes("shade"))
+        return {
+          icon: <Moon className="h-3.5 w-3.5" />,
+          bg: "bg-violet-100",
+          text: "text-violet-700",
+        };
+      return {
+        icon: <Sun className="h-3.5 w-3.5" />,
+        bg: "bg-amber-100",
+        text: "text-amber-700",
+      };
+    }
+    if (aspect === "water") {
+      if (lvl.includes("moderate"))
+        return {
+          icon: <Droplets className="h-3.5 w-3.5" />,
+          bg: "bg-sky-100",
+          text: "text-sky-700",
+        };
+      if (lvl.includes("high") || lvl.includes("frequent"))
+        return {
+          icon: <Droplets className="h-3.5 w-3.5" />,
+          bg: "bg-blue-100",
+          text: "text-blue-700",
+        };
+      if (
+        lvl.includes("low") ||
+        lvl.includes("minimal") ||
+        lvl.includes("drought")
+      )
+        return {
+          icon: <Droplet className="h-3.5 w-3.5" />,
+          bg: "bg-cyan-100",
+          text: "text-cyan-700",
+        };
+      return {
+        icon: <Droplets className="h-3.5 w-3.5" />,
+        bg: "bg-sky-100",
+        text: "text-sky-700",
+      };
+    }
+    // soil
+    if (lvl.includes("well") || lvl.includes("drain"))
+      return {
+        icon: <Layers className="h-3.5 w-3.5" />,
+        bg: "bg-emerald-100",
+        text: "text-emerald-700",
+      };
+    if (lvl.includes("fertile") || lvl.includes("rich"))
+      return {
+        icon: <Sprout className="h-3.5 w-3.5" />,
+        bg: "bg-green-100",
+        text: "text-green-700",
+      };
+    return {
+      icon: <Layers className="h-3.5 w-3.5" />,
+      bg: "bg-emerald-100",
+      text: "text-emerald-700",
+    };
+  };
+
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+    }).format(price);
+
+  const buildGoogleCalendarLink = (
+    action: string,
+    intervalDays: number,
+    notes: string
+  ) => {
+    const start = new Date();
+    start.setHours(9, 0, 0, 0);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const fmt = (d: Date) =>
+      `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(
+        d.getHours()
+      )}${pad(d.getMinutes())}00`;
+    const dates = `${fmt(start)}/${fmt(end)}`;
+    const text = encodeURIComponent(action);
+    const details = encodeURIComponent(
+      `${notes || ""}\n\nAdded from Florabyte`
+    );
+    const ctz = encodeURIComponent(
+      Intl.DateTimeFormat().resolvedOptions().timeZone
+    );
+    const recur =
+      intervalDays && intervalDays > 0
+        ? `&recur=${encodeURIComponent(
+            `RRULE:FREQ=DAILY;INTERVAL=${intervalDays}`
+          )}`
+        : "";
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&details=${details}&dates=${dates}&ctz=${ctz}${recur}`;
   };
 
   if (loading) {
@@ -351,7 +348,7 @@ export default function PlantDetail() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-4xl">
       {/* Header Section */}
       <div className="mb-8">
         <div className="flex justify-between items-start mb-4">
@@ -402,7 +399,7 @@ export default function PlantDetail() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-8 md:grid-cols-2">
+      <div className="grid gap-6 sm:gap-8 md:grid-cols-2">
         {/* Scientific Information */}
         <Card className="relative overflow-hidden">
           {/* Background icon */}
@@ -461,88 +458,54 @@ export default function PlantDetail() {
               Care Instructions
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 relative z-10">
-            <div>
-              <p className="font-medium text-sm text-muted-foreground mb-1 flex items-center gap-2">
-                <span>Light Requirements</span>
-                {careLevelLabel(
-                  "light",
-                  careLevel(plant.care.light as unknown)
-                ) && (
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] leading-4 px-1.5 py-0 capitalize"
-                    >
-                      {careLevelLabel(
-                        "light",
-                        careLevel(plant.care.light as unknown)
+          <CardContent className="space-y-6">
+            {(["light", "water", "soil"] as const).map((kind) => {
+              const val = plant.care[kind];
+              const levelRaw = typeof val === "string" ? "" : val.level;
+              const explanation =
+                typeof val === "string" ? val : val.explanation;
+              const normalized = normalizeLevel(levelRaw);
+              const meta = normalized ? getLevelMeta(kind, normalized) : null;
+              const label =
+                kind === "light"
+                  ? "Light"
+                  : kind === "water"
+                  ? "Water"
+                  : "Soil";
+              return (
+                <div key={kind} className="flex items-start gap-4">
+                  <div className="h-11 w-11 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                    {kind === "light" && (
+                      <Sun className="h-5 w-5 text-amber-600" />
+                    )}
+                    {kind === "water" && (
+                      <Droplets className="h-5 w-5 text-sky-600" />
+                    )}
+                    {kind === "soil" && (
+                      <Layers className="h-5 w-5 text-emerald-600" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <p className="font-medium text-sm text-foreground">
+                        {label}
+                      </p>
+                      {normalized && meta && (
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${meta.bg} ${meta.text}`}
+                        >
+                          {meta.icon}
+                          {normalized}
+                        </span>
                       )}
-                    </Badge>
-                  )}
-              </p>
-              <p className="text-sm text-foreground flex items-start gap-2">
-                <span className="mt-0.5">
-                  {careLevelIcon(
-                    "light",
-                    careLevel(plant.care.light as unknown)
-                  )}
-                </span>
-                <span>{careText(plant.care.light as unknown)}</span>
-              </p>
-            </div>
-            <div>
-              <p className="font-medium text-sm text-muted-foreground mb-1 flex items-center gap-2">
-                <span>Watering</span>
-                {careLevelLabel(
-                  "water",
-                  careLevel(plant.care.water as unknown)
-                ) && (
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] leading-4 px-1.5 py-0 capitalize"
-                    >
-                      {careLevelLabel(
-                        "water",
-                        careLevel(plant.care.water as unknown)
-                      )}
-                    </Badge>
-                  )}
-              </p>
-              <p className="text-sm text-foreground flex items-start gap-2">
-                <span className="mt-0.5">
-                  {careLevelIcon(
-                    "water",
-                    careLevel(plant.care.water as unknown)
-                  )}
-                </span>
-                <span>{careText(plant.care.water as unknown)}</span>
-              </p>
-            </div>
-            <div>
-              <p className="font-medium text-sm text-muted-foreground mb-1 flex items-center gap-2">
-                <span>Soil Requirements</span>
-                {careLevelLabel(
-                  "soil",
-                  careLevel(plant.care.soil as unknown)
-                ) && (
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] leading-4 px-1.5 py-0 capitalize"
-                    >
-                      {careLevelLabel(
-                        "soil",
-                        careLevel(plant.care.soil as unknown)
-                      )}
-                    </Badge>
-                  )}
-              </p>
-              <p className="text-sm text-foreground flex items-start gap-2">
-                <span className="mt-0.5">
-                  {careLevelIcon("soil", careLevel(plant.care.soil as unknown))}
-                </span>
-                <span>{careText(plant.care.soil as unknown)}</span>
-              </p>
-            </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                      {explanation}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
       </div>
@@ -612,32 +575,63 @@ export default function PlantDetail() {
         </CardHeader>
         <CardContent className="relative z-10">
           <div className="space-y-4">
-            {plant.schedule.map((task, index) => (
-              <div
-                key={index}
-                className="flex gap-4 p-4 bg-secondary rounded-lg"
-              >
-                <div className="flex-shrink-0">
-                  {getScheduleIcon(task.type)}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-medium text-foreground capitalize">
-                      {task.type}
-                    </p>
-                    <Badge variant="outline" className="text-xs">
-                      Every {formatInterval(task.intervalDays)}
-                    </Badge>
+            {plant.schedule.map((task, index) => {
+              const meta = getScheduleMeta(task.type);
+              return (
+                <div
+                  key={index}
+                  className={`flex flex-col gap-3 p-4 rounded-xl md:flex-row md:items-start md:gap-4 ${meta.card}`}
+                >
+                  <div className="flex-shrink-0 flex items-start">
+                    <div className="h-12 w-12 flex items-center justify-center">
+                      {meta.icon}
+                    </div>
                   </div>
-                  <p className="text-sm text-muted-foreground">{task.notes}</p>
+                  <div className="flex-1 w-full">
+                    <div className="flex flex-wrap items-center gap-2 mb-1 justify-between">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-foreground capitalize">
+                          {task.type}
+                        </p>
+                        <Badge variant="outline" className="text-xs">
+                          Every {formatInterval(task.intervalDays)}
+                        </Badge>
+                      </div>
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1 rounded-md"
+                      >
+                        <a
+                          href={buildGoogleCalendarLink(
+                            `${task.type} - ${
+                              plant.label.commonName ||
+                              plant.label.scientificName
+                            }`,
+                            task.intervalDays,
+                            task.notes
+                          )}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`Add ${task.type} schedule to Google Calendar`}
+                        >
+                          <CalendarPlus className="h-4 w-4" /> Add to Calendar
+                        </a>
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground whitespace-pre-line">
+                      {task.notes}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid gap-8 md:grid-cols-2 mt-8">
+      <div className="grid gap-6 sm:gap-8 md:grid-cols-2 mt-8">
         {/* Common Issues */}
         <Card className="relative overflow-hidden">
           {/* Background icon */}
@@ -712,71 +706,57 @@ export default function PlantDetail() {
         </Card>
       )}
 
-      {/* Recommended Products (replaces Plant Information) */}
-      <Card className="mt-8 relative overflow-hidden">
-        {/* Background icon */}
-        <div className="pointer-events-none absolute -top-6 -right-6">
-          <Package className="w-40 h-40 text-primary/10 blur-2xl" />
-        </div>
-        <CardHeader className="relative z-10">
-          <CardTitle className="text-lg">Recommended Products</CardTitle>
-          <CardDescription>
-            Suggested items for this plant’s care
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="relative z-10">
-          {loadingRec ? (
-            <p className="text-sm text-muted-foreground">
-              Loading recommendations…
-            </p>
-          ) : recommended.length === 0 ? (
-            <div className="text-sm text-muted-foreground">
-              No recommended products found right now.
-            </div>
-          ) : (
-            <div className="flex items-stretch gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {recommended.map((p) => {
-                const pid = String(p._id || "");
-                const slug = `/products/${toSlug(p.name, pid)}`;
-                const canAdd = Boolean(pid);
+      {/* Recommended Products */}
+      {plant.recommendedProducts && plant.recommendedProducts.length > 0 && (
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-primary" /> Recommended Products
+            </CardTitle>
+            <CardDescription>
+              Suggested items to support this plant
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-6 md:grid-cols-3">
+              {plant.recommendedProducts.map((prod) => {
+                const slug = toSlug(prod.name, prod._id);
                 return (
-                  <div key={pid || p.name} className="min-w-[220px] w-56 flex-shrink-0">
-                    <div className="h-full rounded-lg overflow-hidden border bg-card hover:shadow-md transition-shadow flex flex-col">
-                      <Link href={slug} className="block">
-                        <div className="relative w-full aspect-square bg-muted">
-                          <Image src={p.imgUrl} alt={p.name} fill className="object-cover" />
-                        </div>
-                      </Link>
-                      <div className="p-3 flex flex-col gap-2 flex-1">
-                        <Link href={slug} className="block">
-                          <p className="text-[13px] leading-snug font-medium line-clamp-2 text-slate-800 break-words min-h-[2.6rem]">
-                            {p.name}
-                          </p>
-                        </Link>
-                        <div className="pt-0.5">
-                          <p className="text-sm font-semibold text-emerald-700">
-                            {formatIDR(Number(p.price || 0))}
-                          </p>
-                        </div>
-                        <Button
-                          size="sm"
-                          className="w-full bg-emerald-600 hover:bg-emerald-700 mt-auto"
-                          onClick={() => handleAddRecommended(pid)}
-                          disabled={!canAdd}
-                          aria-label={`Add ${p.name} to cart`}
-                        >
-                          <ShoppingCart className="h-4 w-4 mr-2" />
-                          Add to Cart
-                        </Button>
-                      </div>
+                  <Link
+                    key={prod._id}
+                    href={`/products/${slug}`}
+                    className="group rounded-lg border p-3 flex flex-col gap-3 bg-card/50 hover:shadow-md transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  >
+                    <div className="relative w-full aspect-video overflow-hidden rounded-md bg-muted">
+                      <Image
+                        src={prod.imgUrl || "/placeholder.svg"}
+                        alt={prod.name}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
                     </div>
-                  </div>
+                    <div className="space-y-1">
+                      <p className="font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                        {prod.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground line-clamp-3">
+                        {prod.description}
+                      </p>
+                      <p className="text-sm font-medium text-foreground mt-1">
+                        {formatPrice(prod.price)}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mt-auto">
+                      <span className="capitalize">{prod.category}</span>
+                      <span>Stock: {prod.stock}</span>
+                    </div>
+                  </Link>
                 );
               })}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="mt-8 flex justify-center gap-3 flex-wrap">
         <AlertDialog>
