@@ -8,31 +8,19 @@ import crypto from "crypto";
 
 export async function POST(request: NextRequest) {
   try {
-    const rawBody: unknown = await request.json().catch(() => ({}));
-
-    interface MidtransNotification {
-      order_id?: string; // camel vs snake variants
-      orderId?: string;
-      status_code?: string;
-      gross_amount?: string;
-      signature_key?: string;
-      transaction_status?: string;
-      fraud_status?: string;
-      [k: string]: unknown; // allow passthrough
-    }
-
-    const isObject = (v: unknown): v is Record<string, unknown> =>
-      typeof v === "object" && v !== null;
-    const body: MidtransNotification = isObject(rawBody)
-      ? (rawBody as MidtransNotification)
-      : {};
-    console.log("Midtrans notif body:", body);
+    const body: unknown = await request.json().catch(() => ({}));
+    const safeBody = (
+      typeof body === "object" && body !== null ? body : {}
+    ) as Record<string, unknown>;
+    console.log("Midtrans notif body:", safeBody);
 
     // Validasi signature_key: sha512(order_id + status_code + gross_amount + serverKey)
-    const orderId = body.order_id || body.orderId; // Midtrans payload keys
-    const statusCode = String(body.status_code ?? "");
-    const grossAmount = String(body.gross_amount ?? "");
-    const signature = String(body.signature_key ?? "").toLowerCase();
+    const orderId =
+      (safeBody.order_id as string | undefined) ||
+      (safeBody.orderId as string | undefined);
+    const statusCode = String(safeBody.status_code ?? "");
+    const grossAmount = String(safeBody.gross_amount ?? "");
+    const signature = String(safeBody.signature_key ?? "").toLowerCase();
     const serverKey = process.env.MIDTRANS_SERVER_KEY as string;
 
     if (!serverKey) {
@@ -69,9 +57,16 @@ export async function POST(request: NextRequest) {
 
     let status;
     try {
-      status = await core.transaction.notification(
-        body as Record<string, unknown>
-      ); // midtrans client expects original shape
+      type MidtransNotif = {
+        order_id?: string;
+        orderId?: string;
+        status_code?: string;
+        gross_amount?: string;
+        signature_key?: string;
+        transaction_status?: string;
+        fraud_status?: string;
+      };
+      status = await core.transaction.notification(safeBody as MidtransNotif);
     } catch {
       status = await core.transaction.status(orderId);
     }
@@ -157,6 +152,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Only create order when payment success and not migrated before
+      // const isPaid = newStatus === "paid"; // not used
       // Tidak lagi membuat snapshot orders collection – cukup gunakan cart + orderStatus.
     } else {
       console.warn("Cart not found for midtransOrderId", orderId);

@@ -31,36 +31,54 @@ export async function GET(req: NextRequest) {
         );
     } catch {}
 
+    // Inline migration: ensure carts with paid status have orderStatus
+    try {
+      await db
+        .collection("cart")
+        .updateMany(
+          { status: "paid", orderStatus: { $exists: false } },
+          { $set: { orderStatus: "Pending" } }
+        );
+    } catch {}
+
+    type CartDoc = {
+      _id: ObjectId;
+      userId?: ObjectId;
+      productIds?: ObjectId[];
+      total?: number;
+      status?: string;
+      orderStatus?: string;
+      midtransOrderId?: string;
+      createdAt?: Date;
+      recipientName?: string;
+      recipientPhone?: string;
+      recipientAddress?: string;
+    };
     const carts = await db
-      .collection("cart")
+      .collection<CartDoc>("cart")
       .find({ status: { $in: ["paid", "cancelled"] } })
       .sort({ createdAt: -1 })
       .limit(400)
       .toArray();
 
     // Build aggregated items (name + qty) from productIds
-    interface ProductBasic {
-      _id: ObjectId;
-      name?: string;
-      price?: number;
-    }
     const productIdSet = new Set<string>();
     carts.forEach((c) =>
-      (c.productIds || []).forEach((p: ObjectId) => {
+      (c.productIds || []).forEach((p) => {
         if (p) productIdSet.add(p.toString());
       })
     );
     const productDocs = await db
-      .collection<ProductBasic>("Products")
+      .collection<{ _id: ObjectId; name?: string; price?: number }>("Products")
       .find({
         _id: { $in: Array.from(productIdSet).map((id) => new ObjectId(id)) },
       })
       .project({ name: 1, price: 1 })
       .toArray();
-    const productMap = new Map(
+    const productMap = new Map<string, { name: string; price: number }>(
       productDocs.map((p) => [
         p._id.toString(),
-        { name: p.name || "Unknown", price: Number(p.price) || 0 },
+        { name: p.name || "Unknown", price: Number(p.price || 0) },
       ])
     );
 
@@ -69,40 +87,22 @@ export async function GET(req: NextRequest) {
     carts.forEach((c) => {
       if (c.userId) userIdSet.add(c.userId.toString());
     });
-    let userMap = new Map<
-      string,
-      {
-        name?: string;
-        username?: string;
-        phone?: string | null;
-        address?: string | null;
-      }
-    >();
+    let userMap = new Map<string, { name?: string; username?: string }>();
     if (userIdSet.size) {
       try {
-        interface UserBasic {
-          _id: ObjectId;
-          name?: string;
-          username?: string;
-          phone?: string | null;
-          address?: string | null;
-        }
         const userDocs = await db
-          .collection<UserBasic>("users")
+          .collection<{ _id: ObjectId; name?: string; username?: string }>(
+            "users"
+          )
           .find({
             _id: { $in: Array.from(userIdSet).map((id) => new ObjectId(id)) },
           })
-          .project({ name: 1, username: 1, phone: 1, address: 1 })
+          .project({ name: 1, username: 1 })
           .toArray();
         userMap = new Map(
           userDocs.map((u) => [
             u._id.toString(),
-            {
-              name: u.name,
-              username: u.username,
-              phone: u.phone ?? null,
-              address: u.address ?? null,
-            },
+            { name: u.name, username: u.username },
           ])
         );
       } catch (e) {
@@ -122,16 +122,14 @@ export async function GET(req: NextRequest) {
         price: productMap.get(pid)?.price || 0,
         qty,
       }));
-      const userInfo = userMap.get(c.userId?.toString() || "") ?? {};
+      const userInfo = userMap.get(c.userId?.toString() || "") || {};
       return {
         id: c._id.toString(),
         userId: c.userId?.toString() || "-",
         userName:
-          (userInfo as { name?: string; username?: string }).name ||
-          (userInfo as { username?: string }).username ||
-          "Unknown",
-        userPhone: (userInfo as { phone?: string | null }).phone || null,
-        userAddress: (userInfo as { address?: string | null }).address || null,
+          c.recipientName || userInfo.name || userInfo.username || "Unknown",
+        userPhone: c.recipientPhone || null,
+        userAddress: c.recipientAddress || null,
         items,
         total: Number(c.total) || 0,
         status:
@@ -144,8 +142,8 @@ export async function GET(req: NextRequest) {
     });
     return NextResponse.json({ orders });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed";
     console.error("GET /api/admin/orders error", err);
+    const message = err instanceof Error ? err.message : "Failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
