@@ -1,6 +1,7 @@
 "use client";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useEffect, useState, useCallback, useMemo } from "react";
+import toast, { Toaster } from "react-hot-toast";
 
 interface User {
   _id: string;
@@ -11,6 +12,8 @@ interface User {
   googleId?: string | null;
   googleEmail?: string | null;
   profilePicture?: string | null;
+  phone?: string | null;
+  address?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
 }
@@ -24,6 +27,9 @@ export default function Profile() {
   const [unbindingGoogle, setUnbindingGoogle] = useState(false);
   const [orders, setOrders] = useState<OrderHistoryItem[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ name: "", username: "", phone: "", address: "" });
 
   interface OrderHistoryItem {
     id: string;
@@ -46,6 +52,12 @@ export default function Profile() {
         console.log("/api/auth/me profilePicture:", data.profilePicture);
         setIsLoggedIn(true);
         setUser(data);
+        setForm({
+          name: data.name || "",
+          username: data.username || "",
+          phone: data.phone || "",
+          address: data.address || "",
+        });
       })
       .catch((err) => {
         console.warn("Failed loading /api/auth/me", err);
@@ -53,6 +65,17 @@ export default function Profile() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  // Sync form when user changes (e.g., after PATCH success)
+  useEffect(() => {
+    if (!user) return;
+    setForm({
+      name: user.name || "",
+      username: user.username || "",
+      phone: (user.phone as any) || "",
+      address: (user.address as any) || "",
+    });
+  }, [user?._id]);
 
   const handleGoogleBinding = useCallback(
     async (googleUser: { id?: string | null; sub?: string; email?: string | null; image?: string | null }) => {
@@ -174,6 +197,40 @@ export default function Profile() {
     }
   };
 
+  const handleSaveProfile = async () => {
+    try {
+      if (!form.name.trim() || !form.username.trim()) {
+        toast.error("Nama dan username wajib diisi");
+        return;
+      }
+      if (form.username.trim().length < 3) {
+        toast.error("Username minimal 3 karakter");
+        return;
+      }
+      setSaving(true);
+      const res = await fetch("/api/auth/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: form.name.trim(),
+          username: form.username.trim(),
+          phone: form.phone?.trim() || "",
+          address: form.address?.trim() || "",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal menyimpan profil");
+      setUser(data);
+      setEditing(false);
+      toast.success("Profil disimpan");
+    } catch (e: any) {
+      toast.error(e.message || "Gagal menyimpan");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading)
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -190,6 +247,7 @@ export default function Profile() {
 
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-10">
+      <Toaster position="top-right" />
       {/* Header Card */}
       <div className="flex flex-col gap-6">
         <div className="flex items-start justify-between flex-wrap gap-4">
@@ -204,6 +262,24 @@ export default function Profile() {
             >
               Refresh
             </button>
+            {!editing ? (
+              <button
+                onClick={() => setEditing(true)}
+                className="h-9 px-4 rounded-md bg-emerald-600 text-white text-sm font-medium shadow hover:bg-emerald-700 transition"
+              >Edit Profil</button>
+            ) : (
+              <>
+                <button
+                  onClick={() => { setEditing(false); setForm({ name: user!.name, username: user!.username, phone: (user!.phone as any) || "", address: (user!.address as any) || "" }); }}
+                  className="h-9 px-4 rounded-md border bg-white text-sm hover:bg-gray-50 shadow-sm"
+                >Batal</button>
+                <button
+                  onClick={handleSaveProfile}
+                  disabled={saving}
+                  className="h-9 px-4 rounded-md bg-emerald-600 text-white text-sm font-medium shadow hover:bg-emerald-700 disabled:opacity-50"
+                >{saving ? 'Menyimpan…' : 'Simpan'}</button>
+              </>
+            )}
             <button
               onClick={handleLogout}
               className="h-9 px-4 rounded-md bg-red-500 text-white text-sm font-medium shadow hover:bg-red-600 transition"
@@ -257,24 +333,44 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Information Card */}
+          {/* Information / Edit Card */}
           <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
-            <div className="grid md:grid-cols-2 gap-6 p-6">
-              <Info label="Nama" value={user.name} />
-              <Info label="Username">
-                <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded border border-gray-200 inline-block">
-                  {user.username}
-                </span>
-              </Info>
-              <Info label="Role">
-                <span className={`px-3 py-1 rounded-full text-[11px] font-medium border ${user.role === 'admin'
-                  ? 'bg-purple-50 text-purple-700 border-purple-200'
-                  : 'bg-blue-50 text-blue-700 border-blue-200'}`}>{user.role || 'user'}</span>
-              </Info>
-              <Info label="Google Email" value={user.googleEmail || '-'} />
-              <Info label="Dibuat" value={user.createdAt ? new Date(user.createdAt).toLocaleDateString('id-ID') : '-'} />
-              <Info label="Diperbarui" value={user.updatedAt ? new Date(user.updatedAt).toLocaleDateString('id-ID') : '-'} />
-            </div>
+            {!editing ? (
+              <div className="grid md:grid-cols-2 gap-6 p-6">
+                <Info label="Nama" value={user.name} />
+                <Info label="Username">
+                  <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded border border-gray-200 inline-block">{user.username}</span>
+                </Info>
+                <Info label="Nomor Telepon" value={user.phone || '-'} />
+                <Info label="Alamat" value={user.address || '-'} />
+                <Info label="Role">
+                  <span className={`px-3 py-1 rounded-full text-[11px] font-medium border ${user.role === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>{user.role || 'user'}</span>
+                </Info>
+                <Info label="Google Email" value={user.googleEmail || '-'} />
+                <Info label="Dibuat" value={user.createdAt ? new Date(user.createdAt).toLocaleDateString('id-ID') : '-'} />
+                <Info label="Diperbarui" value={user.updatedAt ? new Date(user.updatedAt).toLocaleDateString('id-ID') : '-'} />
+              </div>
+            ) : (
+              <div className="p-6 grid md:grid-cols-2 gap-6">
+                <div className="space-y-1">
+                  <label className="text-[11px] uppercase tracking-wide text-gray-500">Nama</label>
+                  <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="h-10 w-full rounded-md border bg-white px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] uppercase tracking-wide text-gray-500">Username</label>
+                  <input value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} className="h-10 w-full rounded-md border bg-white px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] uppercase tracking-wide text-gray-500">Nomor Telepon</label>
+                  <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="0812xxxxxxx" className="h-10 w-full rounded-md border bg-white px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                </div>
+                <div className="space-y-1 md:col-span-2">
+                  <label className="text-[11px] uppercase tracking-wide text-gray-500">Alamat</label>
+                  <textarea value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} rows={3} className="w-full rounded-md border bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                </div>
+                <p className="md:col-span-2 text-[11px] text-gray-500">Kamu dapat mengosongkan nomor telepon/alamat untuk menghapusnya.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
