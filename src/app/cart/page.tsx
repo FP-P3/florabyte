@@ -13,6 +13,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import Script from "next/script";
@@ -36,8 +38,10 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true);
   const [errorType, setErrorType] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
-  const [profileIncomplete, setProfileIncomplete] = useState<null | { phone?: string | null; address?: string | null }>(null);
+  const [openCheckoutInfo, setOpenCheckoutInfo] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(false);
+  const [submittingInfo, setSubmittingInfo] = useState(false);
+  const [info, setInfo] = useState({ recipientName: "", recipientPhone: "", recipientAddress: "" });
 
   useEffect(() => {
     fetchCart();
@@ -112,44 +116,59 @@ export default function CartPage() {
     }
   };
 
-  const ensureProfileComplete = async (): Promise<boolean> => {
+  const openInfoModal = async () => {
+    setCheckingProfile(true);
     try {
-      setCheckingProfile(true);
       const res = await fetch("/api/auth/me", { cache: "no-store", credentials: "include" });
-      if (!res.ok) return true; // if can't check, don't block, server will enforce
-      const me = await res.json();
-      const phone = (me?.phone || "").toString().trim();
-      const address = (me?.address || "").toString().trim();
-      if (!phone || !address) {
-        setProfileIncomplete({ phone: me?.phone ?? null, address: me?.address ?? null });
-        return false;
+      if (res.ok) {
+        const me: { name?: string; phone?: string | null; address?: string | null } = await res.json();
+        setInfo({
+          recipientName: (me.name ?? "").toString(),
+          recipientPhone: (me.phone ?? "").toString(),
+          recipientAddress: (me.address ?? "").toString(),
+        });
       }
-      return true;
     } catch {
-      return true;
+      /* ignore */
     } finally {
       setCheckingProfile(false);
+      setOpenCheckoutInfo(true);
     }
   };
 
   const handleCheckout = async () => {
-    const ok = await ensureProfileComplete();
-    if (!ok) return;
+    await openInfoModal();
+  };
+
+  const submitCheckoutInfoThenPay = async () => {
     try {
+      setSubmittingInfo(true);
+      // simple client validation
+      if (!info.recipientName.trim() || !info.recipientPhone.trim() || !info.recipientAddress.trim()) return;
+      const save = await fetch("/api/cart/checkout-info", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(info),
+      });
+      if (!save.ok) {
+        console.error("Failed to save checkout info", await save.text());
+        return;
+      }
+      setOpenCheckoutInfo(false);
       setPaying(true);
       const res = await fetch("/api/payment/create", { method: "POST" });
       if (!res.ok) {
         console.error("Create payment failed", await res.text());
         return;
       }
-      const { token } = await res.json();
+      const { token } = (await res.json()) as { token: string };
       // @ts-expect-error injected by Script
       window.snap.pay(token, {
         onSuccess: () => {
           fetchCart();
         },
         onPending: () => { },
-        onError: (e: any) => {
+        onError: (e: unknown) => {
           console.error("pay error", e);
         },
         onClose: () => { },
@@ -157,6 +176,7 @@ export default function CartPage() {
     } catch (e) {
       console.error(e);
     } finally {
+      setSubmittingInfo(false);
       setPaying(false);
     }
   };
@@ -317,25 +337,42 @@ export default function CartPage() {
                     Total: Rp {cart.total.toLocaleString()}
                   </p>
                   <Button onClick={handleCheckout} disabled={paying || checkingProfile} size="lg">
-                    {paying ? "Processing..." : checkingProfile ? "Checking..." : "Checkout"}
+                    {paying ? "Processing..." : checkingProfile ? "Preparing..." : "Checkout"}
                   </Button>
                 </div>
               </CardContent>
             </Card>
-            {/* Alert when profile incomplete */}
-            <AlertDialog open={!!profileIncomplete} onOpenChange={(o) => !o && setProfileIncomplete(null)}>
+            {/* Modal collect checkout info */}
+            <AlertDialog open={openCheckoutInfo} onOpenChange={setOpenCheckoutInfo}>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Lengkapi Profil Dulu</AlertDialogTitle>
+                  <AlertDialogTitle>Data Penerima</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Untuk melanjutkan pembayaran, isi nomor telepon dan alamat terlebih dahulu.
+                    Isi nama penerima, nomor telepon, dan alamat pengiriman untuk melanjutkan pembayaran.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+                <div className="space-y-3 py-1">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="recipientName">Nama Penerima</Label>
+                    <Input id="recipientName" value={info.recipientName} onChange={(e) => setInfo({ ...info, recipientName: e.target.value })} placeholder="Nama lengkap" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="recipientPhone">Nomor Telepon</Label>
+                    <Input id="recipientPhone" value={info.recipientPhone} onChange={(e) => setInfo({ ...info, recipientPhone: e.target.value })} placeholder="08xxxxxxxxxx" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="recipientAddress">Alamat</Label>
+                    <Input id="recipientAddress" value={info.recipientAddress} onChange={(e) => setInfo({ ...info, recipientAddress: e.target.value })} placeholder="Alamat lengkap" />
+                  </div>
+                </div>
                 <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setProfileIncomplete(null)}>Nanti</AlertDialogCancel>
-                  <Link href="/profile">
-                    <AlertDialogAction>Ke Halaman Profil</AlertDialogAction>
-                  </Link>
+                  <AlertDialogCancel disabled={submittingInfo}>Batal</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={submitCheckoutInfoThenPay}
+                    disabled={submittingInfo || !info.recipientName.trim() || !info.recipientPhone.trim() || !info.recipientAddress.trim()}
+                  >
+                    {submittingInfo ? "Menyimpan..." : "Lanjut Bayar"}
+                  </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

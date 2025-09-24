@@ -1,7 +1,14 @@
 import { ObjectId } from "mongodb";
 import { db } from "../config/mongodb";
+import * as z from "zod";
 
-type CartStatus = "pending" | "paid" | "cancelled";
+
+type ProductDoc = {
+  _id: ObjectId;
+  name?: string;
+  price?: number;
+  imgUrl?: string;
+};
 
 class CartModel {
   static async create(userId: string, productId: string) {
@@ -15,13 +22,16 @@ class CartModel {
     // --- Ambil produk untuk tahu harganya ---
     const product = await db
       .collection("Products")
-      .findOne({ _id: new ObjectId(productId) }, { projection: { price: 1 } });
+      .findOne<ProductDoc>(
+        { _id: new ObjectId(productId) },
+        { projection: { price: 1 } }
+      );
 
     if (!product) {
       throw new Error("Produk tidak ditemukan");
     }
 
-    const price = Number((product as any).price) || 0;
+    const price = Number(product?.price ?? 0);
 
     // --- Cek apakah user sudah punya cart 'pending' ---
     const userObjectId = new ObjectId(userId);
@@ -48,10 +58,13 @@ class CartModel {
     }
 
     // --- Kalau SUDAH ada cart: tambahkan produk & update total ---
-    await db.collection("cart").updateOne({ _id: existingCart._id }, {
-      $push: { productIds: new ObjectId(productId) },
-      $inc: { total: price },
-    } as any);
+    await db.collection("cart").updateOne(
+      { _id: existingCart._id },
+      {
+        $push: { productIds: new ObjectId(productId) },
+        $inc: { total: price },
+      } as unknown as Record<string, unknown>
+    );
 
     // total baru = total lama + price produk yang baru ditambah
     const newTotal = Number(existingCart.total || 0) + price;
@@ -89,8 +102,8 @@ class CartModel {
 
     const products = await db
       .collection("Products")
-      .find({ _id: { $in: uniqueIds } })
-      .project({ name: 1, price: 1, imgUrl: 1 })
+      .find<ProductDoc>({ _id: { $in: uniqueIds } })
+      .project<ProductDoc>({ name: 1, price: 1, imgUrl: 1 })
       .toArray();
 
     // --- Bentuk items untuk UI ---
@@ -107,9 +120,9 @@ class CartModel {
       const idStr = prod._id.toString();
       items.push({
         productId: idStr,
-        name: (prod as any).name || "Unknown",
-        price: Number((prod as any).price) || 0,
-        imgUrl: (prod as any).imgUrl || "",
+        name: prod.name || "Unknown",
+        price: Number(prod.price ?? 0),
+        imgUrl: prod.imgUrl || "",
         qty: qtyById[idStr] || 0,
       });
     }
@@ -130,8 +143,8 @@ class CartModel {
     // Ambil produk untuk harga
     const product = await db
       .collection("Products")
-      .findOne({ _id: productObjectId }, { projection: { price: 1 } });
-    const price = Number((product as any).price) || 0;
+      .findOne<ProductDoc>({ _id: productObjectId }, { projection: { price: 1 } });
+    const price = Number(product?.price ?? 0);
 
     // Ambil cart pending
     const cart = await db.collection("cart").findOne({
@@ -144,10 +157,13 @@ class CartModel {
 
     if (action === "increase") {
       // Push productId dan inc total
-      await db.collection("cart").updateOne({ _id: cart._id }, {
-        $push: { productIds: productObjectId },
-        $inc: { total: price },
-      } as any);
+      await db.collection("cart").updateOne(
+        { _id: cart._id },
+        {
+          $push: { productIds: productObjectId },
+          $inc: { total: price },
+        } as unknown as Record<string, unknown>
+      );
     } else if (action === "decrease") {
       // Pull satu instance dan dec total
       const productIds = cart.productIds || [];
@@ -163,10 +179,13 @@ class CartModel {
         // Jika kosong, hapus cart
         await db.collection("cart").deleteOne({ _id: cart._id });
       } else {
-        await db.collection("cart").updateOne({ _id: cart._id }, {
-          $set: { productIds },
-          $inc: { total: -price },
-        } as any);
+        await db.collection("cart").updateOne(
+          { _id: cart._id },
+          {
+            $set: { productIds },
+            $inc: { total: -price },
+          } as unknown as Record<string, unknown>
+        );
       }
     }
   }
@@ -177,11 +196,11 @@ class CartModel {
     // Ambil produk untuk harga
     const product = await db
       .collection("Products")
-      .findOne({ _id: productObjectId }, { projection: { price: 1 } });
+      .findOne<ProductDoc>({ _id: productObjectId }, { projection: { price: 1 } });
     if (!product) {
       throw new Error("Produk tidak ditemukan");
     }
-    const price = Number((product as any).price) || 0;
+    const price = Number(product.price ?? 0);
 
     // Ambil cart pending
     const cart = await db.collection("cart").findOne({
@@ -210,10 +229,43 @@ class CartModel {
       // Jika kosong, hapus cart
       await db.collection("cart").deleteOne({ _id: cart._id });
     } else {
-      await db.collection("cart").updateOne({ _id: cart._id }, {
-        $set: { productIds: newProductIds },
-        $inc: { total: -(price * qty) },
-      } as any);
+      await db.collection("cart").updateOne(
+        { _id: cart._id },
+        {
+          $set: { productIds: newProductIds },
+          $inc: { total: -(price * qty) },
+        } as unknown as Record<string, unknown>
+      );
+    }
+  }
+  static async setCheckoutInfo(
+    userId: string,
+    info: { recipientName: string; recipientPhone: string; recipientAddress: string }
+  ) {
+    if (!userId || !ObjectId.isValid(userId)) {
+      throw new Error("userId tidak valid");
+    }
+
+    const schema = z.object({
+      recipientName: z.string().trim().min(1, "Nama penerima wajib diisi"),
+      recipientPhone: z.string().trim().min(6, "Nomor telepon tidak valid"),
+      recipientAddress: z.string().trim().min(5, "Alamat terlalu singkat"),
+    });
+    const parsed = schema.parse(info);
+
+    const res = await db.collection("cart").updateOne(
+      { userId: new ObjectId(userId), status: "pending" },
+      {
+        $set: {
+          recipientName: parsed.recipientName,
+          recipientPhone: parsed.recipientPhone,
+          recipientAddress: parsed.recipientAddress,
+          updatedAt: new Date(),
+        },
+      }
+    );
+    if (res.matchedCount === 0) {
+      throw new Error("Cart pending tidak ditemukan");
     }
   }
 }

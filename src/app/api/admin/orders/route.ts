@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { db } from "@/db/config/mongodb";
+import { ObjectId } from "mongodb";
 
 export const runtime = "nodejs";
 
@@ -19,7 +20,20 @@ export async function GET(req: NextRequest) {
             await db.collection("cart").updateMany({ status: "paid", orderStatus: { $exists: false } }, { $set: { orderStatus: "Pending" } });
         } catch { }
 
-        const carts = await db.collection("cart")
+        type CartDoc = {
+            _id: ObjectId;
+            userId?: ObjectId;
+            productIds?: ObjectId[];
+            total?: number;
+            status?: string;
+            orderStatus?: string;
+            midtransOrderId?: string;
+            createdAt?: Date;
+            recipientName?: string;
+            recipientPhone?: string;
+            recipientAddress?: string;
+        };
+        const carts = await db.collection<CartDoc>("cart")
             .find({ status: { $in: ["paid", "cancelled"] } })
             .sort({ createdAt: -1 })
             .limit(400)
@@ -27,27 +41,32 @@ export async function GET(req: NextRequest) {
 
         // Build aggregated items (name + qty) from productIds
         const productIdSet = new Set<string>();
-        carts.forEach(c => (c.productIds || []).forEach((p: any) => { if (p) productIdSet.add(p.toString()); }));
-        const productDocs = await db.collection("Products").find({ _id: { $in: Array.from(productIdSet).map(id => new (require('mongodb').ObjectId)(id)) } }).project({ name: 1, price: 1 }).toArray();
-        const productMap = new Map(productDocs.map((p: any) => [p._id.toString(), { name: p.name, price: Number(p.price) || 0 }]));
+        carts.forEach(c => (c.productIds || []).forEach((p) => { if (p) productIdSet.add(p.toString()); }));
+        const productDocs = await db.collection<{ _id: ObjectId; name?: string; price?: number }>("Products")
+            .find({ _id: { $in: Array.from(productIdSet).map(id => new ObjectId(id)) } })
+            .project({ name: 1, price: 1 })
+            .toArray();
+        const productMap = new Map<string, { name: string; price: number }>(
+            productDocs.map((p) => [p._id.toString(), { name: p.name || 'Unknown', price: Number(p.price || 0) }])
+        );
 
         // Collect userIds for name lookup
         const userIdSet = new Set<string>();
         carts.forEach(c => { if (c.userId) userIdSet.add(c.userId.toString()); });
-        let userMap = new Map<string, { name?: string; username?: string; phone?: string | null; address?: string | null }>();
+        let userMap = new Map<string, { name?: string; username?: string }>();
         if (userIdSet.size) {
             try {
-                const userDocs = await db.collection("users")
-                    .find({ _id: { $in: Array.from(userIdSet).map(id => new (require('mongodb').ObjectId)(id)) } })
-                    .project({ name: 1, username: 1, phone: 1, address: 1 })
+                const userDocs = await db.collection<{ _id: ObjectId; name?: string; username?: string }>("users")
+                    .find({ _id: { $in: Array.from(userIdSet).map(id => new ObjectId(id)) } })
+                    .project({ name: 1, username: 1 })
                     .toArray();
-                userMap = new Map(userDocs.map((u: any) => [u._id.toString(), { name: u.name, username: u.username, phone: u.phone ?? null, address: u.address ?? null }]));
+                userMap = new Map(userDocs.map((u) => [u._id.toString(), { name: u.name, username: u.username }]));
             } catch (e) {
                 console.error('User lookup failed', e);
             }
         }
 
-        const orders = carts.map((c: any) => {
+        const orders = carts.map((c) => {
             const qtyBy: Record<string, number> = {};
             for (const pid of c.productIds || []) {
                 const k = pid.toString();
@@ -59,13 +78,13 @@ export async function GET(req: NextRequest) {
                 price: productMap.get(pid)?.price || 0,
                 qty,
             }));
-            const userInfo = userMap.get(c.userId?.toString() || '') || {} as any;
+            const userInfo = userMap.get(c.userId?.toString() || '') || {};
             return {
                 id: c._id.toString(),
                 userId: c.userId?.toString() || '-',
-                userName: userInfo.name || userInfo.username || 'Unknown',
-                userPhone: userInfo.phone || null,
-                userAddress: userInfo.address || null,
+                userName: c.recipientName || userInfo.name || userInfo.username || 'Unknown',
+                userPhone: c.recipientPhone || null,
+                userAddress: c.recipientAddress || null,
                 items,
                 total: Number(c.total) || 0,
                 status: c.orderStatus || (c.status === 'paid' ? 'Pending' : 'Dibatalkan'),
@@ -76,8 +95,9 @@ export async function GET(req: NextRequest) {
             };
         });
         return NextResponse.json({ orders });
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("GET /api/admin/orders error", err);
-        return NextResponse.json({ error: err.message || "Failed" }, { status: 500 });
+        const message = err instanceof Error ? err.message : "Failed";
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

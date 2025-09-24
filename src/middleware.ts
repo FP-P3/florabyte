@@ -121,7 +121,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (request.nextUrl.pathname === "/api/cart") {
+  if (request.nextUrl.pathname.startsWith("/api/cart")) {
     try {
       if (!auth) throw { message: "Please login first", status: 401 };
 
@@ -207,6 +207,7 @@ export const config = {
     "/plants/:path*",
     "/login",
     "/api/cart",
+    "/api/cart/:path*",
     "/profile",
     "/api/payment/:path*",
     "/api/cms/:path*",
