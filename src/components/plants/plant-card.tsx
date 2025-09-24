@@ -115,7 +115,7 @@ export function PlantCard({ plant }: PlantCardProps) {
   const plantId = extended._id || extended.id || extended.plantId || "";
 
   return (
-    <Card className="overflow-hidden rounded-3xl bg-white shadow-[0_8px_24px_rgba(2,44,34,0.06)] flex flex-col md:flex-row py-0 gap-0">
+    <Card className="overflow-hidden rounded-3xl bg-white shadow-[0_8px_24px_rgba(2,44,34,0.06)] flex flex-col md:flex-row py-0 gap-0 w-full max-w-[350px] sm:max-w-[420px] md:max-w-none mx-auto">
       {/* Image section (left) */}
       <div className="relative w-full md:w-56 flex-shrink-0 aspect-[5/3] md:aspect-auto md:min-h-[260px] md:self-stretch">
         <Image
@@ -127,30 +127,36 @@ export function PlantCard({ plant }: PlantCardProps) {
           priority={false}
         />
       </div>
-      <CardContent className="flex flex-col flex-1 py-4 md:py-5 px-6">
+      <CardContent className="flex flex-col flex-1 py-4 md:py-5 px-5 sm:px-6">
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0">
-            <h3 className="text-[26px] leading-7 font-extrabold text-foreground break-words">
+            <h3 className="text-[22px] md:text-[26px] leading-7 font-extrabold text-foreground break-words">
               {name}
             </h3>
-            <p className="text-[15px] leading-6 text-muted-foreground italic">
+            <p className="text-[14px] md:text-[15px] leading-6 text-muted-foreground italic">
               {scientific}
             </p>
           </div>
           {plantId && (
             <Button
               asChild
-              variant="outline"
-              className="rounded-xl h-9 px-4 mt-2 md:mt-0"
+              variant="default"
+              className="rounded-xl h-9 px-4 mt-2 md:mt-0 bg-emerald-600 hover:bg-emerald-600/90 text-white focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 shadow-sm"
             >
-              <Link href={`/plants/${plantId}`}>Details</Link>
+              <Link href={`/plants/${plantId}`}>Plant Detail</Link>
             </Button>
           )}
         </div>
 
         {/* Care info row */}
-        <div className="mt-5 flex gap-3 w-full flex-1 min-h-[150px]">
+        <div className="mt-5 flex gap-3 w-full flex-1 min-h-[140px] overflow-x-auto md:overflow-visible pb-1 [-ms-overflow-style:none] [scrollbar-width:none]">
+          {/* Hide scrollbar for WebKit */}
+          <style jsx>{`
+            div::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
           {scheduleTypes.map((type) => {
             const item = getScheduleItem(type);
             const meta = metaByType[type];
@@ -160,7 +166,7 @@ export function PlantCard({ plant }: PlantCardProps) {
                 key={type}
                 className={`flex flex-col rounded-2xl border ${meta.border} ${
                   meta.bg
-                } p-3 flex-1 shadow-[0_4px_10px_rgba(2,44,34,0.05)] ${
+                } p-3 flex-1 min-w-[150px] sm:min-w-0 shadow-[0_4px_10px_rgba(2,44,34,0.05)] ${
                   !item ? "opacity-55" : ""
                 }`}
               >

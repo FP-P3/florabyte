@@ -348,7 +348,7 @@ export default function PlantDetail() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-4xl">
       {/* Header Section */}
       <div className="mb-8">
         <div className="flex justify-between items-start mb-4">
@@ -399,7 +399,7 @@ export default function PlantDetail() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-8 md:grid-cols-2">
+      <div className="grid gap-6 sm:gap-8 md:grid-cols-2">
         {/* Scientific Information */}
         <Card className="relative overflow-hidden">
           {/* Background icon */}
@@ -631,7 +631,7 @@ export default function PlantDetail() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-8 md:grid-cols-2 mt-8">
+      <div className="grid gap-6 sm:gap-8 md:grid-cols-2 mt-8">
         {/* Common Issues */}
         <Card className="relative overflow-hidden">
           {/* Background icon */}
