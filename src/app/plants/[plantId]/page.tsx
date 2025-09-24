@@ -44,6 +44,7 @@ import {
   FileText,
   Home,
 } from "lucide-react";
+import ScrollFadeX from "@/components/ui/scroll-fade";
 // (Removed unused ProductType import)
 
 // New flexible types to accommodate updated backend shape
