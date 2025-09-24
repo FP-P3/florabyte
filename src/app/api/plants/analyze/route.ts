@@ -158,7 +158,7 @@ export async function POST(request: Request) {
       aiJson?.label?.commonName ||
       "this plant";
 
-    // Incorporate AI-provided vectorSearch cues when present
+    // Extract AI-provided vectorSearch cues when present
     const vs: { query?: string; keywords?: string[] } =
       (
         aiJson as unknown as {
@@ -170,21 +170,22 @@ export async function POST(request: Request) {
     const aiKeywords: string[] = Array.isArray(vs?.keywords)
       ? (vs.keywords as string[])
       : [];
-    const baseQuery =
-      supplies.length > 0
-        ? `Supplies needed for ${species}: ${supplies.join(", ")}`
-        : `Supplies for plant care: fertilizer, potting mix, perlite, moisture meter, pruning shears, moss pole`;
-    // Build richer embedding text by including AI query and keywords
-    const additions: string[] = [];
-    if (typeof vs?.query === "string" && vs.query.trim().length > 0) {
-      additions.push(vs.query.trim());
-    }
-    if (aiKeywords.length > 0) {
-      additions.push(`Keywords: ${aiKeywords.join(", ")}`);
-    }
-    const queryText = [baseQuery, ...additions].join(". ");
 
-    console.log(queryText, "<- queryText");
+    // Build a list of search terms: individual keywords + supplies (deduped)
+    const termSet = new Set<string>();
+    for (const k of aiKeywords) {
+      const s = String(k || "").trim();
+      if (s) termSet.add(s);
+    }
+    for (const s of supplies) {
+      const t = String(s || "").trim();
+      if (t) termSet.add(t);
+    }
+    // Fallback to species name if nothing else
+    if (termSet.size === 0 && species) termSet.add(species);
+    const searchTerms = Array.from(termSet).slice(0, 12); // cap to avoid long latency
+
+    console.log(searchTerms, "<- searchTerms for vector search");
 
     // Derive desired categories from AI keywords/supplies (align with Products.category values)
     const deriveCategories = (words: string[]): string[] => {
@@ -210,117 +211,129 @@ export async function POST(request: Request) {
     };
     const categoriesWanted = deriveCategories([...aiKeywords, ...supplies]);
 
-    // AI Embedding for Vector Search
-    const embed: EmbedContentResponse = await ai.models.embedContent({
-      model: MODEL_EMBED,
-      contents: queryText,
-    });
-
-    const queryVector: number[] = embed?.embeddings?.[0]?.values ?? [];
-
-    if (!Array.isArray(queryVector) || queryVector.length === 0) {
-      return new Response(
-        JSON.stringify({
-          error: "Failed to create embedding for vector search",
-        }),
-        { status: 500 }
-      );
-    }
-
     const Products = db.collection<ProductDoc>(PRODUCTS_COLL);
 
-    // Strict vector search: filter by stock and desired categories if inferred
-    const filterStrict: {
-      stock: { $gt: number };
-      category?: { $in: string[] };
-    } = { stock: { $gt: 0 } };
-    if (categoriesWanted.length > 0)
-      filterStrict.category = { $in: categoriesWanted };
-    const pipelineStrict = [
-      {
-        $vectorSearch: {
-          index: VECTOR_INDEX,
-          path: "embedding",
-          queryVector,
-          numCandidates: 30,
-          limit: 24,
-          filter: filterStrict,
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-          name: 1,
-          description: 1,
-          price: 1,
-          stock: 1,
-          imgUrl: 1,
-          category: 1,
-          vectScore: { $meta: "vectorSearchScore" },
-        },
-      },
-      {
-        $addFields: {
-          categoryBoost: {
-            $cond: [{ $in: ["$category", categoriesWanted] }, 0.15, 0],
+    // Aggregate results across per-term vector searches
+    interface AccumProduct extends ProductRecommendation {
+      score: number;
+    }
+    const productMap = new Map<string, AccumProduct>();
+
+    for (const term of searchTerms) {
+      try {
+        const emb: EmbedContentResponse = await ai.models.embedContent({
+          model: MODEL_EMBED,
+          contents: term,
+        });
+        const vec = emb?.embeddings?.[0]?.values ?? [];
+        if (!Array.isArray(vec) || vec.length === 0) continue;
+
+        const baseFilter: {
+          stock: { $gt: number };
+          category?: { $in: string[] };
+        } = {
+          stock: { $gt: 0 },
+        };
+        if (categoriesWanted.length > 0) {
+          baseFilter.category = { $in: categoriesWanted };
+        }
+
+        const termPipeline = [
+          {
+            $vectorSearch: {
+              index: VECTOR_INDEX,
+              path: "embedding",
+              queryVector: vec,
+              numCandidates: 80,
+              limit: 10,
+              filter: baseFilter,
+            },
           },
-          stockBoost: { $min: [{ $divide: ["$stock", 100] }, 0.2] },
-          finalScore: { $add: ["$vectScore", "$categoryBoost", "$stockBoost"] },
-        },
-      },
-      { $sort: { finalScore: -1 } },
-      { $limit: 8 },
-      {
-        $project: {
-          _id: 1,
-          name: 1,
-          description: 1,
-          price: 1,
-          stock: 1,
-          imgUrl: 1,
-          category: 1,
-          score: "$finalScore",
-        },
-      },
-    ];
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              description: 1,
+              price: 1,
+              stock: 1,
+              imgUrl: 1,
+              category: 1,
+              vectScore: { $meta: "vectorSearchScore" },
+            },
+          },
+          {
+            $addFields: {
+              vectScoreSafe: { $ifNull: ["$vectScore", 0] },
+              categoryBoost: {
+                $cond: [{ $in: ["$category", categoriesWanted] }, 0.15, 0],
+              },
+              stockBoost: { $min: [{ $divide: ["$stock", 100] }, 0.2] },
+              finalScore: {
+                $add: ["$vectScoreSafe", "$categoryBoost", "$stockBoost"],
+              },
+            },
+          },
+          { $sort: { finalScore: -1 } },
+          { $limit: 6 },
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              description: 1,
+              price: 1,
+              stock: 1,
+              imgUrl: 1,
+              category: 1,
+              score: "$finalScore",
+            },
+          },
+        ];
 
-    let productRecommendations =
-      await Products.aggregate<ProductRecommendation>(pipelineStrict).toArray();
+        const termResults = await Products.aggregate<AccumProduct>(
+          termPipeline
+        ).toArray();
 
-    // Relaxed vector search: drop category filter if still empty
+        for (const prod of termResults) {
+          if (!prod?._id) continue;
+          const id = String(prod._id);
+          const existing = productMap.get(id);
+          if (!existing || prod.score > existing.score) {
+            productMap.set(id, { ...prod, score: prod.score });
+          }
+        }
+      } catch (e) {
+        console.warn("Embedding/vector search failed for term", term, e);
+      }
+    }
+
+    let productRecommendations: ProductRecommendation[] = Array.from(
+      productMap.values()
+    )
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8)
+      .map((p) => ({ ...p }));
+
+    // Sanitize scores to ensure no null/undefined propagate
+    const normalizeScore = (val: unknown): number =>
+      typeof val === "number" && Number.isFinite(val) ? val : 0;
+    productRecommendations = productRecommendations.map((p) => ({
+      ...p,
+      score: normalizeScore((p as ProductRecommendation).score as unknown),
+    }));
+
+    // Fallbacks if still empty
     if (!productRecommendations || productRecommendations.length === 0) {
-      const pipelineRelaxed = [
-        {
-          $vectorSearch: {
-            index: VECTOR_INDEX,
-            path: "embedding",
-            queryVector,
-            numCandidates: 400,
-            limit: 24,
-            filter: { stock: { $gt: 0 } },
-          },
-        },
-        {
-          $project: {
-            _id: 1,
-            name: 1,
-            description: 1,
-            price: 1,
-            stock: 1,
-            imgUrl: 1,
-            category: 1,
-            vectScore: { $meta: "vectorSearchScore" },
-          },
-        },
+      // Simple top-stock fallback with constant score 0.4 as requested
+      const fallbackMatch: Record<string, unknown> = { stock: { $gt: 0 } };
+      const fallbackPipeline: Record<string, unknown>[] = [
+        { $match: fallbackMatch },
         {
           $addFields: {
             categoryBoost: {
               $cond: [{ $in: ["$category", categoriesWanted] }, 0.15, 0],
             },
             stockBoost: { $min: [{ $divide: ["$stock", 100] }, 0.2] },
-            finalScore: {
-              $add: ["$vectScore", "$categoryBoost", "$stockBoost"],
-            },
+            finalScore: { $add: ["$stockBoost", "$categoryBoost"] },
           },
         },
         { $sort: { finalScore: -1 } },
@@ -339,84 +352,12 @@ export async function POST(request: Request) {
         },
       ];
       productRecommendations = await Products.aggregate<ProductRecommendation>(
-        pipelineRelaxed
+        fallbackPipeline
       ).toArray();
-    }
-
-    // Regex fallback using keywords/supplies/species if still empty
-    if (!productRecommendations || productRecommendations.length === 0) {
-      const pool = Array.from(
-        new Set(
-          [...aiKeywords, ...supplies, species]
-            .map((s) => String(s || "").trim())
-            .filter(Boolean)
-        )
-      ).slice(0, 10);
-      const escapeRegex = (s: string) =>
-        s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const pattern = pool.map(escapeRegex).join("|");
-      const orMatch = pattern
-        ? [
-            { name: { $regex: pattern, $options: "i" } },
-            { description: { $regex: pattern, $options: "i" } },
-            { category: { $regex: pattern, $options: "i" } },
-          ]
-        : [];
-      const matchRegex: Record<string, unknown> = { stock: { $gt: 0 } };
-      if (orMatch.length > 0)
-        (matchRegex as Record<string, unknown>)["$or"] =
-          orMatch as unknown as Record<string, unknown>[];
-      if (categoriesWanted.length > 0)
-        (matchRegex as Record<string, unknown>)["category"] = {
-          $in: categoriesWanted,
-        } as unknown as Record<string, unknown>;
-      const pipelineRegex: Record<string, unknown>[] = [
-        { $match: matchRegex },
-        { $limit: 8 },
-        {
-          $project: {
-            _id: 1,
-            name: 1,
-            description: 1,
-            price: 1,
-            stock: 1,
-            imgUrl: 1,
-            category: 1,
-            score: { $literal: 0.1 },
-          },
-        },
-      ];
-      productRecommendations = await Products.aggregate<ProductRecommendation>(
-        pipelineRegex
-      ).toArray();
-    }
-
-    // Final deterministic fallback: top in-stock products by desired categories, else any in-stock
-    if (!productRecommendations || productRecommendations.length === 0) {
-      const matchStage: Record<string, unknown> =
-        categoriesWanted.length > 0
-          ? { stock: { $gt: 0 }, category: { $in: categoriesWanted } }
-          : { stock: { $gt: 0 } };
-      const pipelineDefault: Record<string, unknown>[] = [
-        { $match: matchStage },
-        { $sort: { stock: -1 } },
-        { $limit: 8 },
-        {
-          $project: {
-            _id: 1,
-            name: 1,
-            description: 1,
-            price: 1,
-            stock: 1,
-            imgUrl: 1,
-            category: 1,
-            score: { $literal: 0.05 },
-          },
-        },
-      ];
-      productRecommendations = await Products.aggregate<ProductRecommendation>(
-        pipelineDefault
-      ).toArray();
+      productRecommendations = productRecommendations.map((p) => ({
+        ...p,
+        score: normalizeScore(p.score as unknown),
+      }));
     }
 
     return new Response(
