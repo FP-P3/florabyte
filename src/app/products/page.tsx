@@ -97,7 +97,7 @@ export default function ProductsPage() {
       {/* Full Width Banner */}
       <section className="w-full">
         <Image
-          src="/productbanner.jpg"
+          src="/productBanner.jpg"
           alt="Products Banner"
           width={2400}
           height={600}
