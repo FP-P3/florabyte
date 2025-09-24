@@ -9,7 +9,7 @@ type ProductDoc = {
   imgUrl?: string;
 };
 
-// Define the cart document shape used in this model
+// Define the cart document shape used in this modell
 type CartDoc = {
   _id: ObjectId;
   userId: ObjectId;
