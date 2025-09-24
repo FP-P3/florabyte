@@ -177,21 +177,24 @@ export default function ProductsPage() {
             : `Showing ${showingFrom}-${showingTo} of ${total} items`}
         </div>
 
-        {/* Grid: 6 kolom di semua ukuran */}
-        <div className="grid gap-2 sm:gap-3 grid-cols-6">
-          {products.length === 0 && !loading ? (
-            <div className="col-span-full text-center text-gray-500">
-              No products found.
-            </div>
-          ) : (
-            products.map((product: any, index: number) => (
-              <ProductCard
-                key={product._id || index}
-                product={product}
-                onAddToCart={handleAddToCart}
-              />
-            ))
-          )}
+        {/* Wrapper to control grid width */}
+        <div className="mx-auto max-w-5xl">
+          {/* Grid: Responsif, 2 kolom di mobile, 6 di desktop */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {products.length === 0 && !loading ? (
+              <div className="col-span-full text-center text-gray-500">
+                No products found.
+              </div>
+            ) : (
+              products.map((product: any, index: number) => (
+                <ProductCard
+                  key={product._id || index}
+                  product={product}
+                  onAddToCart={handleAddToCart}
+                />
+              ))
+            )}
+          </div>
         </div>
 
         {/* Pagination */}
