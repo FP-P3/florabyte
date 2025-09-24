@@ -3,6 +3,16 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import Script from "next/script";
@@ -26,6 +36,8 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true);
   const [errorType, setErrorType] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
+  const [profileIncomplete, setProfileIncomplete] = useState<null | { phone?: string | null; address?: string | null }>(null);
+  const [checkingProfile, setCheckingProfile] = useState(false);
 
   useEffect(() => {
     fetchCart();
@@ -100,7 +112,29 @@ export default function CartPage() {
     }
   };
 
+  const ensureProfileComplete = async (): Promise<boolean> => {
+    try {
+      setCheckingProfile(true);
+      const res = await fetch("/api/auth/me", { cache: "no-store", credentials: "include" });
+      if (!res.ok) return true; // if can't check, don't block, server will enforce
+      const me = await res.json();
+      const phone = (me?.phone || "").toString().trim();
+      const address = (me?.address || "").toString().trim();
+      if (!phone || !address) {
+        setProfileIncomplete({ phone: me?.phone ?? null, address: me?.address ?? null });
+        return false;
+      }
+      return true;
+    } catch {
+      return true;
+    } finally {
+      setCheckingProfile(false);
+    }
+  };
+
   const handleCheckout = async () => {
+    const ok = await ensureProfileComplete();
+    if (!ok) return;
     try {
       setPaying(true);
       const res = await fetch("/api/payment/create", { method: "POST" });
@@ -114,11 +148,11 @@ export default function CartPage() {
         onSuccess: () => {
           fetchCart();
         },
-        onPending: () => {},
+        onPending: () => { },
         onError: (e: any) => {
           console.error("pay error", e);
         },
-        onClose: () => {},
+        onClose: () => { },
       });
     } catch (e) {
       console.error(e);
@@ -282,12 +316,29 @@ export default function CartPage() {
                   <p className="text-xl font-semibold">
                     Total: Rp {cart.total.toLocaleString()}
                   </p>
-                  <Button onClick={handleCheckout} disabled={paying} size="lg">
-                    {paying ? "Processing..." : "Checkout"}
+                  <Button onClick={handleCheckout} disabled={paying || checkingProfile} size="lg">
+                    {paying ? "Processing..." : checkingProfile ? "Checking..." : "Checkout"}
                   </Button>
                 </div>
               </CardContent>
             </Card>
+            {/* Alert when profile incomplete */}
+            <AlertDialog open={!!profileIncomplete} onOpenChange={(o) => !o && setProfileIncomplete(null)}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Lengkapi Profil Dulu</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Untuk melanjutkan pembayaran, isi nomor telepon dan alamat terlebih dahulu.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setProfileIncomplete(null)}>Nanti</AlertDialogCancel>
+                  <Link href="/profile">
+                    <AlertDialogAction>Ke Halaman Profil</AlertDialogAction>
+                  </Link>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </>
         )}
       </div>
