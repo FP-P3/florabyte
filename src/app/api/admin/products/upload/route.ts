@@ -8,7 +8,8 @@ async function checkAdmin() {
   const token = cookieStore
     .get("Authorization")?.value?.replace("Bearer ", "");
   if (!token) throw { message: "Unauthorized", status: 401 };
-  const decoded = verify(token, process.env.JWT_SECRET as string) as any;
+  interface JwtPayloadLike { role?: string; [k: string]: unknown }
+  const decoded = verify(token, process.env.JWT_SECRET as string) as JwtPayloadLike;
   if (decoded.role !== "admin") throw { message: "Forbidden", status: 403 };
   return decoded;
 }
@@ -31,7 +32,8 @@ export async function POST(request: Request) {
           { folder: "products" },
           (error, result) => {
             if (error || !result) return reject(error || new Error("Upload failed"));
-            resolve({ secure_url: (result as any).secure_url, public_id: result.public_id });
+            const secureUrl = typeof result.secure_url === 'string' ? result.secure_url : '';
+            resolve({ secure_url: secureUrl, public_id: result.public_id });
           }
         );
         stream.end(buffer);

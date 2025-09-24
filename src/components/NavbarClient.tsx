@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -73,7 +73,7 @@ export default function NavbarClient({ isSignedIn }: Props) {
           setMe({
             name: data.name,
             profilePicture: data.profilePicture,
-            role: (data as any).role,
+            role: (data as { role?: 'user' | 'admin' }).role || 'user',
           });
       } catch { }
     }
@@ -97,10 +97,10 @@ export default function NavbarClient({ isSignedIn }: Props) {
           if (!ignore) setCartCount(0);
           return;
         }
-        const data = await res.json();
+  const data: { items?: { qty?: unknown }[] } = await res.json();
         // data.items = [{qty:number}]
         const count: number = Array.isArray(data?.items)
-          ? data.items.reduce((acc: number, it: any) => acc + Number(it?.qty || 0), 0)
+          ? data.items.reduce((acc: number, it) => acc + Number(typeof it?.qty === 'number' || typeof it?.qty === 'string' ? it.qty : 0), 0)
           : 0;
         if (!ignore) {
           setCartCount((prev) => {
@@ -121,12 +121,12 @@ export default function NavbarClient({ isSignedIn }: Props) {
     const handleVisibility = () => {
       if (document.visibilityState === "visible") fetchCartCount();
     };
-    window.addEventListener("cart:refresh", handleRefresh as any);
+  window.addEventListener("cart:refresh", handleRefresh as EventListener);
     document.addEventListener("visibilitychange", handleVisibility);
     window.addEventListener("focus", handleRefresh);
     return () => {
       ignore = true;
-      window.removeEventListener("cart:refresh", handleRefresh as any);
+  window.removeEventListener("cart:refresh", handleRefresh as EventListener);
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("focus", handleRefresh);
     };

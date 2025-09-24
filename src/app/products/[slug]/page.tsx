@@ -1,4 +1,5 @@
 import ProductModel from "@/db/model/ProductModel";
+import { ProductType } from "@/types/ProductType";
 import { idFromSlug } from "@/lib/slug";
 import { notFound } from "next/navigation";
 import Image from "next/image";
@@ -25,14 +26,40 @@ export default async function ProductDetailPage({
   const product = await ProductModel.getProductById(id).catch(() => null);
   if (!product) return notFound();
   // Fetch related products by category (exclude current product)
-  const relatedRaw = await ProductModel.getByCategory(product.category || "");
-  const related = (relatedRaw || [])
-    .filter((p: any) => String(p._id) !== String(product._id))
+  const relatedRaw = await ProductModel.getByCategory(product.category || "") as ProductType[];
+  interface RelatedProduct {
+    _id: { toString(): string } | string;
+    name?: string;
+    imgUrl?: string;
+    price?: number | string;
+    description?: string;
+    stock?: number | string;
+    category?: string;
+    slug: string;
+  }
+  const toSlug = (name: string, id: string) =>
+    `${name.toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .slice(0, 60)}-${id}`;
+  const related: RelatedProduct[] = (relatedRaw || [])
+    .filter(r => String(r._id) !== String(product._id))
     .slice(0, 8)
-    .map((p: any) => ({
-      ...p,
-      slug: `${(p.name || "product").toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").slice(0, 60)}-${String(p._id)}`,
-    }));
+    .map(r => {
+      const idStr = typeof r._id === 'string' ? r._id : r._id.toString();
+      const name = typeof r.name === 'string' ? r.name : 'product';
+      const base: Omit<RelatedProduct, 'slug'> = {
+        _id: r._id as { toString(): string } | string,
+        name: r.name,
+        imgUrl: r.imgUrl,
+        price: r.price,
+        description: r.description,
+        stock: r.stock,
+        category: r.category,
+      };
+      return { ...base, slug: toSlug(name, idStr) };
+    });
 
   const formatIDR = (v: number) => {
     try {
@@ -177,11 +204,14 @@ export default async function ProductDetailPage({
             <Link href={`/products?category=${encodeURIComponent(String(product.category || ""))}`} className="text-sm text-emerald-700 hover:underline">Lihat semua</Link>
           </div>
           <ScrollFadeX className="mt-4" contentClassName="items-stretch">
-            {related.map((p: any) => (
-              <div key={String(p._id)} className="min-w-[200px]">
-                <ProductCard product={p} />
-              </div>
-            ))}
+            {related.map((p) => {
+              const idStr = typeof p._id === 'string' ? p._id : p._id.toString();
+              return (
+                <div key={idStr} className="min-w-[200px]">
+                  <ProductCard product={p} />
+                </div>
+              );
+            })}
           </ScrollFadeX>
         </section>
       )}

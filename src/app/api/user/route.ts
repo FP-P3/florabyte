@@ -1,7 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { db } from '@/db/config/mongodb';
-import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 
 // Buat ulang authOptions di sini jika tidak bisa import
@@ -15,7 +14,7 @@ const authOptions = {
   secret: process.env.JWT_SECRET!,
 };
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session || !session.user || !session.user.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

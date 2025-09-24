@@ -149,7 +149,7 @@ export default function CartPage() {
           fetchCart();
         },
         onPending: () => { },
-        onError: (e: any) => {
+        onError: (e: unknown) => {
           console.error("pay error", e);
         },
         onClose: () => { },

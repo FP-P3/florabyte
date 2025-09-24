@@ -75,17 +75,20 @@ export default class NewOrderModel {
         }
         const uniqueIds = Object.keys(qtyById).map((id) => new ObjectId(id));
 
+        type MinimalProduct = { _id: ObjectId; name?: unknown; price?: unknown };
         const products = await db
-            .collection("Products")
+            .collection<MinimalProduct>("Products")
             .find({ _id: { $in: uniqueIds } })
             .project({ name: 1, price: 1 })
             .toArray();
 
         const productMap = new Map<string, { name: string; price: number }>();
         for (const p of products) {
+            const name = typeof p.name === 'string' ? p.name : 'Unknown';
+            const priceNum = typeof p.price === 'number' || typeof p.price === 'string' ? Number(p.price) : 0;
             productMap.set(p._id.toString(), {
-                name: (p as any).name || "Unknown",
-                price: Number((p as any).price) || 0,
+                name,
+                price: Number.isFinite(priceNum) ? priceNum : 0,
             });
         }
 
@@ -152,8 +155,9 @@ export default class NewOrderModel {
             { $set: { status, updatedAt: new Date() } },
             { returnDocument: "after" }
         );
-        const updated = (result as any)?.value as OrderDocument | undefined;
-        if (!updated) throw new Error("Order tidak ditemukan");
-        return mapDoc(updated);
+        // Driver returns a document or null in 'value'
+        const updatedDoc = (result as { value?: OrderDocument | null } | null)?.value || null;
+        if (!updatedDoc) throw new Error("Order tidak ditemukan");
+        return mapDoc(updatedDoc);
     }
 }

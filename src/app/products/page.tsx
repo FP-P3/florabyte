@@ -1,17 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import ProductCard from "@/components/ProductCard";
-import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react"; // Import ikon
-
-type Product = any;
+import { ProductType } from "@/types/ProductType";
+import Image from "next/image";
 
 export default function ProductsPage() {
   const router = useRouter();
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductType[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
@@ -21,12 +20,7 @@ export default function ProductsPage() {
   const pageSize = 12;
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchProducts();
-    // reset ke page 1 jika filter berubah (kecuali saat hanya ganti page)
-  }, [selectedCategory, query, page]);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       const qs = new URLSearchParams();
@@ -53,7 +47,11 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [query, selectedCategory, page, pageSize]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   const handleAddToCart = async (productId: string) => {
     try {
@@ -98,9 +96,12 @@ export default function ProductsPage() {
     <main className="min-h-screen page-bg-home text-foreground">
       {/* Full Width Banner */}
       <section className="w-full">
-        <img
+        <Image
           src="/productbanner.jpg"
           alt="Products Banner"
+          width={2400}
+          height={600}
+          priority
           className="w-full h-auto object-cover"
         />
       </section>
@@ -168,10 +169,12 @@ export default function ProductsPage() {
                     </h3>
 
                     {/* Icon/logo besar di tengah */}
-                    <img
+                    <Image
                       src={c.image}
                       alt={c.label}
-                      className="h-24 w-24 md:h-28 md:w-28 object-contain" // ikon dibesarkan
+                      width={112}
+                      height={112}
+                      className="h-24 w-24 md:h-28 md:w-28 object-contain"
                     />
                   </div>
 
@@ -202,9 +205,9 @@ export default function ProductsPage() {
                 No products found.
               </div>
             ) : (
-              products.map((product: any, index: number) => (
+              products.map((product, index: number) => (
                 <ProductCard
-                  key={product._id || index}
+                  key={typeof product._id === 'string' ? product._id : product._id?.toString?.() || String(index)}
                   product={product}
                   onAddToCart={handleAddToCart}
                 />

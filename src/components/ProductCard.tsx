@@ -4,23 +4,35 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Star } from "lucide-react";
+import { ProductType } from "@/types/ProductType";
+
+// Accept a flexible product shape but strongly type known fields
+interface ProductLike {
+  _id?: { toString(): string } | string;
+  id?: string;
+  name?: string;
+  imgUrl?: string;
+  imageUrl?: string;
+  image?: string;
+  slug?: string;
+  price?: number | string;
+  sold?: number | string;
+  soldCount?: number | string;
+}
 
 type Props = {
-  product: any;
+  product: ProductLike | ProductType;
   onAddToCart?: (id: string) => void | Promise<void>;
 };
 
 export default function ProductCard({ product, onAddToCart }: Props) {
-  const id = product?._id?.toString?.() || product?.id || "";
-  const name = product?.name || "Unnamed product";
-  const img =
-    product?.imgUrl ||
-    product?.imageUrl ||
-    product?.image ||
-    "/placeholder.png";
-  const slug = product?.slug || "";
-  const price = Number(product?.price ?? 0);
-  const sold = Number(product?.sold ?? product?.soldCount ?? 0);
+  const p = product as ProductLike; // local flexible view
+  const id = p?._id && typeof p._id !== 'string' ? p._id.toString() : (p?._id as string) || p?.id || "";
+  const name = p?.name || "Unnamed product";
+  const img = p?.imgUrl || p?.imageUrl || p?.image || "/placeholder.png";
+  const slug = p?.slug || ""; // slug may be injected outside ProductType
+  const price = Number(p?.price ?? 0);
+  const sold = Number(p?.sold ?? p?.soldCount ?? 0);
 
   const handleAdd = async (e: React.MouseEvent) => {
     e.preventDefault();

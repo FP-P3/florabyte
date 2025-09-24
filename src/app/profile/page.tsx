@@ -1,6 +1,7 @@
 "use client";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useEffect, useState, useCallback, useMemo } from "react";
+import Image from "next/image";
 import toast, { Toaster } from "react-hot-toast";
 
 interface User {
@@ -75,8 +76,8 @@ export default function Profile() {
     setForm({
       name: user.name || "",
       username: user.username || "",
-      phone: (user.phone as any) || "",
-      address: (user.address as any) || "",
+  phone: user.phone || "",
+  address: user.address || "",
     });
   }, [user?._id]);
 
@@ -89,8 +90,8 @@ export default function Profile() {
           googleUser.id ||
           googleUser.sub ||
           sessionUser?.id ||
-          (session as any)?.token?.sub ||
-          (session as any)?.account?.providerAccountId;
+          (session as unknown as { token?: { sub?: string }; account?: { providerAccountId?: string } })?.token?.sub ||
+          (session as unknown as { token?: { sub?: string }; account?: { providerAccountId?: string } })?.account?.providerAccountId;
 
         const googleEmail = googleUser.email || sessionUser?.email;
         const profilePicture = googleUser.image || sessionUser?.image;
@@ -132,7 +133,7 @@ export default function Profile() {
 
   useEffect(() => {
     if (session?.user && isLoggedIn && user && !user.googleId) {
-      handleGoogleBinding(session.user as any);
+  handleGoogleBinding(session.user as { id?: string | null; sub?: string; email?: string | null; image?: string | null });
     }
   }, [session, isLoggedIn, user?.googleId, user, handleGoogleBinding]);
 
@@ -262,8 +263,9 @@ export default function Profile() {
       setUser(data);
       setEditing(false);
       toast.success("Profil disimpan");
-    } catch (e: any) {
-      toast.error(e.message || "Gagal menyimpan");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Gagal menyimpan';
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -331,7 +333,7 @@ export default function Profile() {
               <>
                 <div className="inline-flex items-stretch rounded-md border bg-white shadow-sm overflow-hidden">
                   <button
-                    onClick={() => { setEditing(false); setForm({ name: user!.name, username: user!.username, phone: (user!.phone as any) || "", address: (user!.address as any) || "" }); }}
+                    onClick={() => { setEditing(false); setForm({ name: user!.name, username: user!.username, phone: user!.phone || "", address: user!.address || "" }); }}
                     className="h-9 px-3 text-sm hover:bg-gray-50 flex items-center gap-2"
                     title="Batalkan perubahan"
                   >
@@ -367,7 +369,7 @@ export default function Profile() {
             <div className="p-4 rounded-xl border bg-white shadow-sm flex flex-col items-center">
               <AvatarDisplay
                 name={user.name}
-                image={(user.profilePicture || (session?.user as any)?.image) as string | undefined}
+                image={(user.profilePicture || (session?.user as { image?: string | null })?.image) || undefined}
                 googleLinked={!!user.googleId}
               />
               <p className="mt-3 font-medium text-sm">{user.name}</p>
@@ -558,11 +560,17 @@ export default function Profile() {
   );
 }
 
-function Info({ label, value, children }: { label: string; value?: any; children?: React.ReactNode }) {
+function Info({ label, value, children }: { label: string; value?: unknown; children?: React.ReactNode }) {
+  const rendered = (() => {
+    if (children) return children;
+    if (typeof value === 'string' && value) return value;
+    if (typeof value === 'number') return value;
+    return <span className="text-gray-400">-</span>;
+  })();
   return (
     <div className="space-y-1">
       <p className="text-[11px] uppercase tracking-wide text-gray-500">{label}</p>
-      {children ? <div>{children}</div> : <p className="font-medium break-all">{value ?? "-"}</p>}
+      <div className="font-medium break-all text-sm">{rendered}</div>
     </div>
   );
 }
@@ -594,15 +602,15 @@ function AvatarDisplay({
     <div className="relative group">
       <div className="relative h-40 w-40">
         {image ? (
-          <img
+          <Image
             src={image}
             alt={name}
+            width={160}
+            height={160}
             className="h-40 w-40 rounded-full object-cover ring-4 ring-white shadow-sm outline outline-gray-200 group-hover:outline-emerald-400 transition"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = "none";
-              const fallback = (e.currentTarget.parentElement?.querySelector(
-                '[data-fallback-avatar]'
-              ) as HTMLElement) as HTMLElement;
+            onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+              e.currentTarget.style.display = 'none';
+              const fallback = e.currentTarget.parentElement?.querySelector('[data-fallback-avatar]') as HTMLElement | null;
               if (fallback) fallback.style.display = 'flex';
             }}
           />

@@ -25,8 +25,7 @@ export default function AdminOrdersPage() {
     const [orders, setOrders] = useState<AdminOrder[]>([]);
     const [loading, setLoading] = useState(true);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [message, setMessage] = useState<string | null>(null);
+    const [, setError] = useState<string | null>(null); // internal error state (not displayed yet)
 
     async function fetchAll() {
         setLoading(true);
@@ -36,8 +35,9 @@ export default function AdminOrdersPage() {
             if (!res.ok) throw new Error("Gagal memuat orders");
             const data = await res.json();
             setOrders(data.orders || []);
-        } catch (e: any) {
-            setError(e.message);
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : 'Gagal memuat orders';
+            setError(msg);
         } finally {
             setLoading(false);
         }
@@ -48,7 +48,7 @@ export default function AdminOrdersPage() {
     async function updateStatus(id: string, status: string) {
         const prev = orders;
         setUpdatingId(id);
-        setMessage(null);
+    // clear transient message (not currently displayed)
         // Optimistic UI (optional)
         setOrders(p => p.map(o => o.id === id ? { ...o, status } : o));
         try {
@@ -57,17 +57,18 @@ export default function AdminOrdersPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ status }),
             });
-            let data: any = {};
-            try { data = await res.json(); } catch { }
-            if (!res.ok || !data?.order) {
+            let data: { order?: unknown; error?: string } = {};
+            try { data = await res.json(); } catch { /* ignore */ }
+            if (!res.ok || !data.order) {
                 // rollback
                 setOrders(prev);
                 throw new Error(data.error || `Gagal update (status ${res.status})`);
             }
             toast.success("Status diperbarui");
-        } catch (e: any) {
-            toast.error(e.message || 'Gagal update');
-            setError(e.message);
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : 'Gagal update';
+            toast.error(msg);
+            setError(msg);
         } finally {
             setUpdatingId(null);
         }
@@ -123,7 +124,6 @@ export default function AdminOrdersPage() {
                             <tr><td colSpan={7} className="py-10 text-center text-gray-500">Tidak ada orders.</td></tr>
                         )}
                         {!loading && orders.map(o => {
-                            const itemsLabel = o.items.map(it => `${it.name}${it.qty > 1 ? ` x${it.qty}` : ''}`).join(', ');
                             return (
                                 <tr key={o.id} className="border-t odd:bg-white even:bg-gray-50/50 hover:bg-emerald-50/40">
                                     <td className="py-3.5 px-4 font-mono text-[11px] text-gray-700">{o.id.slice(-12)}</td>
