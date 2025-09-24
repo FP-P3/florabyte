@@ -111,7 +111,7 @@ export default function Profile() {
         if (!googleId || !googleEmail) {
           googleId = googleId || "temp_" + Date.now();
           if (!googleEmail) {
-            alert("Tidak bisa mendapatkan email Google.");
+            toast.error("Tidak bisa mendapatkan email Google.");
             await signOut({ redirect: false });
             return;
           }
@@ -128,13 +128,13 @@ export default function Profile() {
         if (response.ok) {
           setUser(result.user);
           await signOut({ redirect: false });
-          alert("Berhasil menghubungkan akun Google!");
+          toast.success("Berhasil menghubungkan akun Google!");
         } else {
-          alert(result.error || "Gagal menghubungkan");
+          toast.error(result.error || "Gagal menghubungkan");
           await signOut({ redirect: false });
         }
       } catch {
-        alert("Terjadi kesalahan binding");
+        toast.error("Terjadi kesalahan binding");
         await signOut({ redirect: false });
       } finally {
         setBindingGoogle(false);
@@ -205,12 +205,12 @@ export default function Profile() {
   }, [orders, statusFilter]);
 
   const handleBindGoogle = () => {
-    if (user?.googleId) return alert("Sudah terhubung.");
+    if (user?.googleId) return toast("Sudah terhubung.");
     signIn("google", { redirect: false, callbackUrl: "/profile" });
   };
 
   const handleUnbindGoogle = async () => {
-    if (!user?.googleId) return alert("Belum terhubung.");
+    if (!user?.googleId) return toast("Belum terhubung.");
     if (!confirm("Yakin putuskan akun Google?")) return;
     try {
       setUnbindingGoogle(true);
@@ -222,9 +222,9 @@ export default function Profile() {
       const result = await res.json();
       if (res.ok) {
         setUser(result.user);
-        alert("Berhasil diputuskan.");
+        toast.success("Berhasil diputuskan.");
       } else {
-        alert(result.error || "Gagal.");
+        toast.error(result.error || "Gagal.");
       }
     } finally {
       setUnbindingGoogle(false);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -170,7 +171,7 @@ export default function PlantDashboard() {
       );
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      alert(message || "Delete failed");
+      toast.error(message || "Delete failed");
     }
   };
 
