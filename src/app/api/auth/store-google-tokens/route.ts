@@ -10,12 +10,17 @@ export async function POST(req: NextRequest) {
     if (!userId)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const session = await getServerSession(authOptions);
-  interface GoogleSessionTokens { access_token?: string; refresh_token?: string; expires_at?: number }
-  const tokens: GoogleSessionTokens = session as unknown as GoogleSessionTokens;
-  const access_token = tokens.access_token;
-  const refresh_token = tokens.refresh_token;
-  const expires_at = tokens.expires_at;
+    const session = await getServerSession(authOptions);
+    interface GoogleSessionTokens {
+      access_token?: string;
+      refresh_token?: string;
+      expires_at?: number;
+    }
+    const tokens: GoogleSessionTokens =
+      session as unknown as GoogleSessionTokens;
+    const access_token = tokens.access_token;
+    const refresh_token = tokens.refresh_token;
+    const expires_at = tokens.expires_at;
 
     if (!access_token && !refresh_token) {
       return NextResponse.json(

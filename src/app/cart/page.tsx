@@ -36,7 +36,10 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true);
   const [errorType, setErrorType] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
-  const [profileIncomplete, setProfileIncomplete] = useState<null | { phone?: string | null; address?: string | null }>(null);
+  const [profileIncomplete, setProfileIncomplete] = useState<null | {
+    phone?: string | null;
+    address?: string | null;
+  }>(null);
   const [checkingProfile, setCheckingProfile] = useState(false);
 
   useEffect(() => {
@@ -115,13 +118,19 @@ export default function CartPage() {
   const ensureProfileComplete = async (): Promise<boolean> => {
     try {
       setCheckingProfile(true);
-      const res = await fetch("/api/auth/me", { cache: "no-store", credentials: "include" });
+      const res = await fetch("/api/auth/me", {
+        cache: "no-store",
+        credentials: "include",
+      });
       if (!res.ok) return true; // if can't check, don't block, server will enforce
       const me = await res.json();
       const phone = (me?.phone || "").toString().trim();
       const address = (me?.address || "").toString().trim();
       if (!phone || !address) {
-        setProfileIncomplete({ phone: me?.phone ?? null, address: me?.address ?? null });
+        setProfileIncomplete({
+          phone: me?.phone ?? null,
+          address: me?.address ?? null,
+        });
         return false;
       }
       return true;
@@ -148,11 +157,11 @@ export default function CartPage() {
         onSuccess: () => {
           fetchCart();
         },
-        onPending: () => { },
+        onPending: () => {},
         onError: (e: unknown) => {
           console.error("pay error", e);
         },
-        onClose: () => { },
+        onClose: () => {},
       });
     } catch (e) {
       console.error(e);
@@ -316,23 +325,37 @@ export default function CartPage() {
                   <p className="text-xl font-semibold">
                     Total: Rp {cart.total.toLocaleString()}
                   </p>
-                  <Button onClick={handleCheckout} disabled={paying || checkingProfile} size="lg">
-                    {paying ? "Processing..." : checkingProfile ? "Checking..." : "Checkout"}
+                  <Button
+                    onClick={handleCheckout}
+                    disabled={paying || checkingProfile}
+                    size="lg"
+                  >
+                    {paying
+                      ? "Processing..."
+                      : checkingProfile
+                      ? "Checking..."
+                      : "Checkout"}
                   </Button>
                 </div>
               </CardContent>
             </Card>
             {/* Alert when profile incomplete */}
-            <AlertDialog open={!!profileIncomplete} onOpenChange={(o) => !o && setProfileIncomplete(null)}>
+            <AlertDialog
+              open={!!profileIncomplete}
+              onOpenChange={(o) => !o && setProfileIncomplete(null)}
+            >
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Lengkapi Profil Dulu</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Untuk melanjutkan pembayaran, isi nomor telepon dan alamat terlebih dahulu.
+                    Untuk melanjutkan pembayaran, isi nomor telepon dan alamat
+                    terlebih dahulu.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setProfileIncomplete(null)}>Nanti</AlertDialogCancel>
+                  <AlertDialogCancel onClick={() => setProfileIncomplete(null)}>
+                    Nanti
+                  </AlertDialogCancel>
                   <Link href="/profile">
                     <AlertDialogAction>Ke Halaman Profil</AlertDialogAction>
                   </Link>

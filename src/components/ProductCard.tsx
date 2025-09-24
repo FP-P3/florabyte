@@ -27,7 +27,10 @@ type Props = {
 
 export default function ProductCard({ product, onAddToCart }: Props) {
   const p = product as ProductLike; // local flexible view
-  const id = p?._id && typeof p._id !== 'string' ? p._id.toString() : (p?._id as string) || p?.id || "";
+  const id =
+    p?._id && typeof p._id !== "string"
+      ? p._id.toString()
+      : (p?._id as string) || p?.id || "";
   const name = p?.name || "Unnamed product";
   const img = p?.imgUrl || p?.imageUrl || p?.image || "/placeholder.png";
   const slug = p?.slug || ""; // slug may be injected outside ProductType

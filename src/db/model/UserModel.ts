@@ -64,10 +64,12 @@ class UserModel {
     }
 
     // Return user tanpa password (untuk JWT atau session)
-  // Return a shallow copy without password
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { password: _pw, ...userWithoutPassword } = user as UserType & { password?: string };
-  return { ...userWithoutPassword };
+    // Return a shallow copy without password
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _pw, ...userWithoutPassword } = user as UserType & {
+      password?: string;
+    };
+    return { ...userWithoutPassword };
   }
 }
 

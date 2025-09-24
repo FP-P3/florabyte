@@ -21,8 +21,11 @@ export async function POST(request: NextRequest) {
       [k: string]: unknown; // allow passthrough
     }
 
-    const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
-    const body: MidtransNotification = isObject(rawBody) ? (rawBody as MidtransNotification) : {};
+    const isObject = (v: unknown): v is Record<string, unknown> =>
+      typeof v === "object" && v !== null;
+    const body: MidtransNotification = isObject(rawBody)
+      ? (rawBody as MidtransNotification)
+      : {};
     console.log("Midtrans notif body:", body);
 
     // Validasi signature_key: sha512(order_id + status_code + gross_amount + serverKey)
@@ -66,7 +69,9 @@ export async function POST(request: NextRequest) {
 
     let status;
     try {
-  status = await core.transaction.notification(body as Record<string, unknown>); // midtrans client expects original shape
+      status = await core.transaction.notification(
+        body as Record<string, unknown>
+      ); // midtrans client expects original shape
     } catch {
       status = await core.transaction.status(orderId);
     }
@@ -152,7 +157,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Only create order when payment success and not migrated before
-  // Tidak lagi membuat snapshot orders collection – cukup gunakan cart + orderStatus.
+      // Tidak lagi membuat snapshot orders collection – cukup gunakan cart + orderStatus.
     } else {
       console.warn("Cart not found for midtransOrderId", orderId);
     }

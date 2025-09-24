@@ -26,7 +26,9 @@ export default async function ProductDetailPage({
   const product = await ProductModel.getProductById(id).catch(() => null);
   if (!product) return notFound();
   // Fetch related products by category (exclude current product)
-  const relatedRaw = await ProductModel.getByCategory(product.category || "") as ProductType[];
+  const relatedRaw = (await ProductModel.getByCategory(
+    product.category || ""
+  )) as ProductType[];
   interface RelatedProduct {
     _id: { toString(): string } | string;
     name?: string;
@@ -38,18 +40,19 @@ export default async function ProductDetailPage({
     slug: string;
   }
   const toSlug = (name: string, id: string) =>
-    `${name.toLowerCase()
+    `${name
+      .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, "")
       .replace(/\s+/g, "-")
       .replace(/-+/g, "-")
       .slice(0, 60)}-${id}`;
   const related: RelatedProduct[] = (relatedRaw || [])
-    .filter(r => String(r._id) !== String(product._id))
+    .filter((r) => String(r._id) !== String(product._id))
     .slice(0, 8)
-    .map(r => {
-      const idStr = typeof r._id === 'string' ? r._id : r._id.toString();
-      const name = typeof r.name === 'string' ? r.name : 'product';
-      const base: Omit<RelatedProduct, 'slug'> = {
+    .map((r) => {
+      const idStr = typeof r._id === "string" ? r._id : r._id.toString();
+      const name = typeof r.name === "string" ? r.name : "product";
+      const base: Omit<RelatedProduct, "slug"> = {
         _id: r._id as { toString(): string } | string,
         name: r.name,
         imgUrl: r.imgUrl,
@@ -73,7 +76,8 @@ export default async function ProductDetailPage({
     }
   };
   const productIdStr = product._id?.toString?.() || "";
-  const lowStock = Number(product.stock || 0) > 0 && Number(product.stock || 0) <= 5;
+  const lowStock =
+    Number(product.stock || 0) > 0 && Number(product.stock || 0) <= 5;
   const outOfStock = Number(product.stock || 0) <= 0;
   const features: string[] = (product.description || "")
     .split(/\.|\n|\r/)
@@ -86,17 +90,24 @@ export default async function ProductDetailPage({
       <section className="mx-auto max-w-6xl px-4 md:px-6 py-8 md:py-12">
         {/* Breadcrumb */}
         <div className="mb-4">
-          <Link href="/products" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            href="/products"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="h-4 w-4" /> Back to Products
           </Link>
         </div>
         <nav className="mb-6 text-sm text-muted-foreground">
           <ol className="flex flex-wrap items-center gap-1">
             <li>
-              <Link href="/products" className="hover:text-foreground">Products</Link>
+              <Link href="/products" className="hover:text-foreground">
+                Products
+              </Link>
             </li>
             <li className="text-muted-foreground">/</li>
-            <li className="text-foreground font-medium line-clamp-1 max-w-[60ch]">{product.name}</li>
+            <li className="text-foreground font-medium line-clamp-1 max-w-[60ch]">
+              {product.name}
+            </li>
           </ol>
         </nav>
 
@@ -128,21 +139,30 @@ export default async function ProductDetailPage({
                 </CardTitle>
               </div>
               <div className="mt-2 flex items-center gap-2 flex-wrap">
-                <Link href={`/products?category=${encodeURIComponent(String(product.category || ""))}`}>
+                <Link
+                  href={`/products?category=${encodeURIComponent(
+                    String(product.category || "")
+                  )}`}
+                >
                   <Badge variant="secondary" className="capitalize">
                     <Tag className="h-3.5 w-3.5 mr-1.5" /> {product.category}
                   </Badge>
                 </Link>
                 <span
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] ${outOfStock
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] ${
+                    outOfStock
                       ? "bg-red-50 text-red-700 border-red-200"
                       : lowStock
-                        ? "bg-amber-50 text-amber-700 border-amber-200"
-                        : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                    }`}
+                      ? "bg-amber-50 text-amber-700 border-amber-200"
+                      : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  }`}
                 >
                   <Package className="h-3.5 w-3.5" />
-                  {outOfStock ? "Stok habis" : lowStock ? `Stok menipis (${product.stock})` : `Stok: ${product.stock}`}
+                  {outOfStock
+                    ? "Stok habis"
+                    : lowStock
+                    ? `Stok menipis (${product.stock})`
+                    : `Stok: ${product.stock}`}
                 </span>
               </div>
             </CardHeader>
@@ -160,17 +180,26 @@ export default async function ProductDetailPage({
                   <>
                     <Separator />
                     <div className="prose prose-sm max-w-none text-foreground/90">
-                      <h3 className="mb-2 text-base font-semibold">Deskripsi Produk</h3>
-                      <p className="whitespace-pre-line leading-relaxed">{product.description}</p>
+                      <h3 className="mb-2 text-base font-semibold">
+                        Deskripsi Produk
+                      </h3>
+                      <p className="whitespace-pre-line leading-relaxed">
+                        {product.description}
+                      </p>
                     </div>
                   </>
                 )}
                 {features.length > 0 && (
                   <div className="mt-2">
-                    <h4 className="mb-2 text-sm font-semibold text-foreground">Highlights</h4>
+                    <h4 className="mb-2 text-sm font-semibold text-foreground">
+                      Highlights
+                    </h4>
                     <ul className="space-y-1.5">
                       {features.map((f, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm text-foreground/90">
+                        <li
+                          key={i}
+                          className="flex items-start gap-2 text-sm text-foreground/90"
+                        >
                           <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5" />
                           <span>{f}</span>
                         </li>
@@ -188,7 +217,9 @@ export default async function ProductDetailPage({
           <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs text-muted-foreground">Harga</p>
-              <p className="text-lg font-semibold text-emerald-700 truncate">{formatIDR(Number(product.price))}</p>
+              <p className="text-lg font-semibold text-emerald-700 truncate">
+                {formatIDR(Number(product.price))}
+              </p>
             </div>
             <div className="flex-1 max-w-[60%]">
               <AddToCart productId={productIdStr} />
@@ -200,12 +231,22 @@ export default async function ProductDetailPage({
       {related.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 md:px-6 pb-16">
           <div className="mt-10 md:mt-12 flex items-center justify-between">
-            <h2 className="text-xl md:text-2xl font-semibold tracking-tight">Related Products</h2>
-            <Link href={`/products?category=${encodeURIComponent(String(product.category || ""))}`} className="text-sm text-emerald-700 hover:underline">Lihat semua</Link>
+            <h2 className="text-xl md:text-2xl font-semibold tracking-tight">
+              Related Products
+            </h2>
+            <Link
+              href={`/products?category=${encodeURIComponent(
+                String(product.category || "")
+              )}`}
+              className="text-sm text-emerald-700 hover:underline"
+            >
+              Lihat semua
+            </Link>
           </div>
           <ScrollFadeX className="mt-4" contentClassName="items-stretch">
             {related.map((p) => {
-              const idStr = typeof p._id === 'string' ? p._id : p._id.toString();
+              const idStr =
+                typeof p._id === "string" ? p._id : p._id.toString();
               return (
                 <div key={idStr} className="min-w-[200px]">
                   <ProductCard product={p} />

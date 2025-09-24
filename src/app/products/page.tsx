@@ -132,7 +132,7 @@ export default function ProductsPage() {
               disabled={loading}
               aria-label="Search products"
             >
-              {loading && query ? 'Searching…' : 'Search'}
+              {loading && query ? "Searching…" : "Search"}
             </button>
           </form>
         </div>
@@ -207,7 +207,11 @@ export default function ProductsPage() {
             ) : (
               products.map((product, index: number) => (
                 <ProductCard
-                  key={typeof product._id === 'string' ? product._id : product._id?.toString?.() || String(index)}
+                  key={
+                    typeof product._id === "string"
+                      ? product._id
+                      : product._id?.toString?.() || String(index)
+                  }
                   product={product}
                   onAddToCart={handleAddToCart}
                 />
@@ -242,10 +246,11 @@ export default function ProductsPage() {
                   <button
                     key={p}
                     onClick={() => setPage(p)}
-                    className={`h-10 w-10 rounded-full font-semibold transition-all ${isActive
-                      ? "bg-emerald-600 text-white scale-110 shadow-lg shadow-emerald-500/30"
-                      : "bg-white hover:bg-gray-100 hover:border-gray-300 border border-transparent"
-                      }`}
+                    className={`h-10 w-10 rounded-full font-semibold transition-all ${
+                      isActive
+                        ? "bg-emerald-600 text-white scale-110 shadow-lg shadow-emerald-500/30"
+                        : "bg-white hover:bg-gray-100 hover:border-gray-300 border border-transparent"
+                    }`}
                     disabled={loading}
                   >
                     {p}

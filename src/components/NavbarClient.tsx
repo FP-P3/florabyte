@@ -73,9 +73,9 @@ export default function NavbarClient({ isSignedIn }: Props) {
           setMe({
             name: data.name,
             profilePicture: data.profilePicture,
-            role: (data as { role?: 'user' | 'admin' }).role || 'user',
+            role: (data as { role?: "user" | "admin" }).role || "user",
           });
-      } catch { }
+      } catch {}
     }
     loadMe();
     return () => {
@@ -92,15 +92,27 @@ export default function NavbarClient({ isSignedIn }: Props) {
     async function fetchCartCount() {
       try {
         if (!authed) return;
-        const res = await fetch("/api/cart", { cache: "no-store", credentials: "include" });
+        const res = await fetch("/api/cart", {
+          cache: "no-store",
+          credentials: "include",
+        });
         if (!res.ok) {
           if (!ignore) setCartCount(0);
           return;
         }
-  const data: { items?: { qty?: unknown }[] } = await res.json();
+        const data: { items?: { qty?: unknown }[] } = await res.json();
         // data.items = [{qty:number}]
         const count: number = Array.isArray(data?.items)
-          ? data.items.reduce((acc: number, it) => acc + Number(typeof it?.qty === 'number' || typeof it?.qty === 'string' ? it.qty : 0), 0)
+          ? data.items.reduce(
+              (acc: number, it) =>
+                acc +
+                Number(
+                  typeof it?.qty === "number" || typeof it?.qty === "string"
+                    ? it.qty
+                    : 0
+                ),
+              0
+            )
           : 0;
         if (!ignore) {
           setCartCount((prev) => {
@@ -121,12 +133,15 @@ export default function NavbarClient({ isSignedIn }: Props) {
     const handleVisibility = () => {
       if (document.visibilityState === "visible") fetchCartCount();
     };
-  window.addEventListener("cart:refresh", handleRefresh as EventListener);
+    window.addEventListener("cart:refresh", handleRefresh as EventListener);
     document.addEventListener("visibilitychange", handleVisibility);
     window.addEventListener("focus", handleRefresh);
     return () => {
       ignore = true;
-  window.removeEventListener("cart:refresh", handleRefresh as EventListener);
+      window.removeEventListener(
+        "cart:refresh",
+        handleRefresh as EventListener
+      );
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("focus", handleRefresh);
     };
@@ -136,12 +151,12 @@ export default function NavbarClient({ isSignedIn }: Props) {
 
   const authedExtra = authed
     ? [
-      { href: "/plants", label: "Dashboard" },
-      { href: "/plants/scan", label: "Scan" },
-      ...(me?.role === "admin"
-        ? [{ href: "/admin/orders", label: "Admin Orders" }]
-        : []),
-    ]
+        { href: "/plants", label: "Dashboard" },
+        { href: "/plants/scan", label: "Scan" },
+        ...(me?.role === "admin"
+          ? [{ href: "/admin/orders", label: "Admin Orders" }]
+          : []),
+      ]
     : [];
 
   return (
@@ -175,13 +190,20 @@ export default function NavbarClient({ isSignedIn }: Props) {
         {/* Right CTA */}
         <div className="hidden md:flex items-center gap-2">
           {/* Tombol Cart di desktop dengan badge */}
-          <Button asChild variant="ghost" size="icon" aria-label="Cart" className="relative">
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            aria-label="Cart"
+            className="relative"
+          >
             <Link href="/cart">
               <ShoppingCart className="h-5 w-5 text-emerald-600" />
               {hasItems && (
                 <span
-                  className={`absolute -top-1.5 -right-1.5 grid min-w-5 h-5 place-items-center rounded-full bg-emerald-600 px-1 text-[10px] font-semibold text-white shadow ring-1 ring-white ${bump ? "animate-bounce" : ""
-                    }`}
+                  className={`absolute -top-1.5 -right-1.5 grid min-w-5 h-5 place-items-center rounded-full bg-emerald-600 px-1 text-[10px] font-semibold text-white shadow ring-1 ring-white ${
+                    bump ? "animate-bounce" : ""
+                  }`}
                 >
                   {cartCount > 99 ? "99+" : cartCount}
                 </span>
@@ -271,7 +293,9 @@ export default function NavbarClient({ isSignedIn }: Props) {
               {/* Tambah item Cart di mobile */}
               <NavButton
                 href="/cart"
-                label={`Cart${hasItems ? ` (${cartCount > 99 ? "99+" : cartCount})` : ""}`}
+                label={`Cart${
+                  hasItems ? ` (${cartCount > 99 ? "99+" : cartCount})` : ""
+                }`}
                 onClick={() => setOpen(false)}
               />
 

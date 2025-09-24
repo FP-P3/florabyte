@@ -24,7 +24,10 @@ class OrderModel {
    * Ambil riwayat order (dokumen cart yang sudah jadi transaksi) untuk user.
    * Saat ini cart dengan status "paid" atau "cancelled" dianggap sebagai riwayat.
    */
-  static async getHistory(userId: string, limit = 30): Promise<OrderHistoryItem[]> {
+  static async getHistory(
+    userId: string,
+    limit = 30
+  ): Promise<OrderHistoryItem[]> {
     if (!userId || !ObjectId.isValid(userId)) return [];
     const userObjectId = new ObjectId(userId);
 
@@ -58,8 +61,11 @@ class OrderModel {
       .toArray();
     const productMap = new Map<string, { name: string; price: number }>();
     for (const p of products) {
-      const name = typeof p.name === 'string' ? p.name : 'Unknown';
-      const priceRaw = typeof p.price === 'number' || typeof p.price === 'string' ? Number(p.price) : 0;
+      const name = typeof p.name === "string" ? p.name : "Unknown";
+      const priceRaw =
+        typeof p.price === "number" || typeof p.price === "string"
+          ? Number(p.price)
+          : 0;
       productMap.set(p._id.toString(), {
         name,
         price: Number.isFinite(priceRaw) ? priceRaw : 0,
@@ -77,12 +83,12 @@ class OrderModel {
       const items: OrderHistoryItemProduct[] = Object.entries(qtyById).map(
         ([id, qty]) => {
           const meta = productMap.get(id) || { name: "Unknown", price: 0 };
-            return {
-              productId: id,
-              name: meta.name,
-              price: meta.price,
-              qty,
-            };
+          return {
+            productId: id,
+            name: meta.name,
+            price: meta.price,
+            qty,
+          };
         }
       );
       result.push({
