@@ -77,16 +77,7 @@ export default function PlantDashboard() {
     }
   };
 
-  const isSameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
-
-  const addDays = (d: Date, days: number) => {
-    const nd = new Date(d);
-    nd.setDate(nd.getDate() + days);
-    return nd;
-  };
+  // (Removed old isSameDay/addDays helpers; new task logic uses modular arithmetic directly.)
 
   useEffect(() => {
     if (!plants || plants.length === 0) {
@@ -94,52 +85,53 @@ export default function PlantDashboard() {
       return;
     }
     const now = new Date();
-    const dayMs = 24 * 60 * 60 * 1000;
     const newTasks: Task[] = [];
 
     for (const p of plants) {
       const plantName = p.label.commonName || p.label.scientificName || "Plant";
       const createdAt = new Date(p.createdAt);
+      if (createdAt > now) continue; // ignore future-created data anomalies
       const schedules = Array.isArray(p.schedule) ? p.schedule : [];
+
       for (const s of schedules) {
         const interval = Math.max(1, Number(s.intervalDays) || 0);
-        if (!interval || interval < 1) continue;
+        if (!interval) continue;
+
+        // Days since creation (floored) ensures consistent cycle alignment
         const diffDays = Math.max(
           0,
-          Math.floor((now.getTime() - createdAt.getTime()) / dayMs)
+          Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24))
         );
-        const cycles = Math.floor(diffDays / interval);
-        const nextDue = addDays(createdAt, (cycles + 1) * interval);
-        const daysUntilRaw = (nextDue.getTime() - now.getTime()) / dayMs;
-        const dueInDays = isSameDay(nextDue, now)
-          ? 0
-          : Math.max(0, Math.ceil(daysUntilRaw));
-        if (dueInDays < 0 || dueInDays > 30) continue;
+        const remainder = diffDays % interval;
+        const dueInDays = remainder === 0 ? 0 : interval - remainder; // 0 means due today
+        if (dueInDays > 30) continue; // ignore far-future tasks to keep list tight
 
-        const dueDateLabel = isSameDay(nextDue, now)
+        const targetDate = new Date(now);
+        targetDate.setDate(targetDate.getDate() + dueInDays);
+
+        const dueDateLabel = dueInDays === 0
           ? "Today"
           : dueInDays === 1
           ? "Tomorrow"
-          : nextDue.toLocaleDateString(undefined, {
-              month: "short",
-              day: "numeric",
-            });
+          : targetDate.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
         newTasks.push({
-          id: `${p._id}_${s.type}_${nextDue.toISOString().slice(0, 10)}`,
-          plantName,
-          task: taskLabel(s.type),
-          dueDate: dueDateLabel,
-          dueInDays,
-          completed: false,
-          priority: taskPriority(s.type),
+          id: `${p._id}_${s.type}_${targetDate.toISOString().slice(0, 10)}`,
+            plantName,
+            task: taskLabel(s.type),
+            dueDate: dueDateLabel,
+            dueInDays,
+            completed: false,
+            priority: taskPriority(s.type),
         });
       }
     }
+
     newTasks.sort((a, b) => {
       if (a.dueInDays !== b.dueInDays) return a.dueInDays - b.dueInDays;
-      const pa = a.priority === "High" ? 0 : a.priority === "Medium" ? 1 : 2;
-      const pb = b.priority === "High" ? 0 : b.priority === "Medium" ? 1 : 2;
+      const rank = (p: Task) => (p.priority === "High" ? 0 : p.priority === "Medium" ? 1 : 2);
+      const pa = rank(a);
+      const pb = rank(b);
       if (pa !== pb) return pa - pb;
       return a.task.localeCompare(b.task);
     });
@@ -235,23 +227,23 @@ export default function PlantDashboard() {
             {/* Task Sections */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6 mb-6 md:mb-8">
               {/* Today */}
-              <Card className="md:h-[360px]">
-                <CardHeader className="py-4 md:py-6">
-                  <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <Card className="md:max-h-[320px]">
+                <CardHeader className="py-3 md:py-4">
+                  <CardTitle className="flex items-center gap-2 text-sm md:text-base font-medium">
                     <Clock className="h-5 w-5 text-red-500" />
                     Today&apos;s Tasks
                     <Badge variant="secondary">{todayTasks.length}</Badge>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3 md:h-[calc(360px-64px)] overflow-y-auto pr-1">
+                <CardContent className="space-y-2 md:max-h-[calc(320px-56px)] overflow-y-auto pr-1">
                   {todayTasks.map((task) => (
                     <div
                       key={task.id}
-                      className="flex items-start gap-3 p-3 rounded-lg bg-muted/50"
+                      className="flex items-start gap-2 p-2 rounded-md bg-muted/40"
                     >
                       <button
                         onClick={() => toggleTask(task.id)}
-                        className="mt-0.5"
+                        className="mt-0.5 shrink-0"
                       >
                         <CheckCircle2
                           className={`h-4 w-4 ${
@@ -263,7 +255,7 @@ export default function PlantDashboard() {
                       </button>
                       <div className="flex-1 min-w-0">
                         <p
-                          className={`font-medium text-sm ${
+                          className={`font-medium text-[13px] leading-5 ${
                             task.completed
                               ? "line-through text-muted-foreground"
                               : ""
@@ -271,12 +263,12 @@ export default function PlantDashboard() {
                         >
                           {task.task}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[11px] text-muted-foreground">
                           {task.plantName}
                         </p>
                         <Badge
                           variant="outline"
-                          className={`mt-1 text-xs ${getPriorityColor(
+                          className={`mt-1 text-[10px] ${getPriorityColor(
                             task.priority
                           )}`}
                         >
@@ -286,7 +278,7 @@ export default function PlantDashboard() {
                     </div>
                   ))}
                   {todayTasks.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-4">
+                    <p className="text-xs text-muted-foreground text-center py-3">
                       No tasks for today
                     </p>
                   )}
@@ -294,23 +286,23 @@ export default function PlantDashboard() {
               </Card>
 
               {/* This Week */}
-              <Card className="md:h-[360px]">
-                <CardHeader className="py-4 md:py-6">
-                  <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <Card className="md:max-h-[320px]">
+                <CardHeader className="py-3 md:py-4">
+                  <CardTitle className="flex items-center gap-2 text-sm md:text-base font-medium">
                     <Calendar className="h-5 w-5 text-blue-500" />
                     This Week
                     <Badge variant="secondary">{weeklyTasks.length}</Badge>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3 md:h-[calc(360px-64px)] overflow-y-auto pr-1">
+                <CardContent className="space-y-2 md:max-h-[calc(320px-56px)] overflow-y-auto pr-1">
                   {weeklyTasks.map((task) => (
                     <div
                       key={task.id}
-                      className="flex items-start gap-3 p-3 rounded-lg bg-muted/50"
+                      className="flex items-start gap-2 p-2 rounded-md bg-muted/40"
                     >
                       <button
                         onClick={() => toggleTask(task.id)}
-                        className="mt-0.5"
+                        className="mt-0.5 shrink-0"
                       >
                         <CheckCircle2
                           className={`h-4 w-4 ${
@@ -322,7 +314,7 @@ export default function PlantDashboard() {
                       </button>
                       <div className="flex-1 min-w-0">
                         <p
-                          className={`font-medium text-sm ${
+                          className={`font-medium text-[13px] leading-5 ${
                             task.completed
                               ? "line-through text-muted-foreground"
                               : ""
@@ -330,19 +322,19 @@ export default function PlantDashboard() {
                         >
                           {task.task}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[11px] text-muted-foreground">
                           {task.plantName}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge
                             variant="outline"
-                            className={`text-xs ${getPriorityColor(
+                            className={`text-[10px] ${getPriorityColor(
                               task.priority
                             )}`}
                           >
                             {task.priority}
                           </Badge>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-[11px] text-muted-foreground">
                             {task.dueDate}
                           </span>
                         </div>
@@ -350,7 +342,7 @@ export default function PlantDashboard() {
                     </div>
                   ))}
                   {weeklyTasks.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-4">
+                    <p className="text-xs text-muted-foreground text-center py-3">
                       Nothing scheduled this week
                     </p>
                   )}
