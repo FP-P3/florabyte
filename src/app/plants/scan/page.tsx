@@ -26,9 +26,12 @@ import {
   Eye,
   Package,
   CheckCircle,
+  Layers,
 } from "lucide-react";
 import Image from "next/image";
-import type { PlantData } from "@/types/types";
+import type { PlantData, ProductRecommendation } from "@/types/types";
+import Link from "next/link";
+import { toSlug } from "@/lib/slug";
 
 type ScanState = "upload" | "preview" | "scanning" | "results";
 
@@ -129,12 +132,7 @@ export default function PlantScannerPage() {
   };
 
   const resetScanner = async () => {
-    await fetch("/api/plants/analyze", {
-      method: "DELETE",
-      body: JSON.stringify({ url: plantData?.imageUrl }),
-      headers: { "Content-Type": "application/json" },
-    });
-
+    // No remote cleanup required; image will be uploaded on save
     setScanState("upload");
     setSelectedFile(null);
     setPreviewUrl("");
@@ -150,6 +148,77 @@ export default function PlantScannerPage() {
     setScanProgress(0);
     setPlantData(null);
     setError(null);
+  };
+
+  // no add-to-cart here; recommended carousel links directly to product detail
+  const careText = (val: unknown): string => {
+    if (typeof val === "string") return val;
+    if (
+      typeof val === "object" &&
+      val !== null &&
+      "explanation" in (val as Record<string, unknown>)
+    ) {
+      const v = val as { explanation?: unknown };
+      return typeof v.explanation === "string" ? v.explanation : "";
+    }
+    return "";
+  };
+
+  const careLevel = (val: unknown): string | null => {
+    if (
+      typeof val === "object" &&
+      val !== null &&
+      "level" in (val as Record<string, unknown>)
+    ) {
+      const v = val as { level?: unknown };
+      if (typeof v.level === "string") return v.level.toLowerCase();
+    }
+    return null;
+  };
+
+  const careLevelIcon = (
+    kind: "light" | "water" | "soil",
+    level: string | null
+  ) => {
+    const lvl = (level || "").toLowerCase();
+    if (kind === "light") {
+      const color =
+        lvl === "high"
+          ? "text-amber-600"
+          : lvl === "moderate" || lvl === "medium"
+          ? "text-amber-500"
+          : lvl === "low"
+          ? "text-amber-400"
+          : "text-amber-500";
+      return <Sun className={`h-4 w-4 ${color}`} />;
+    }
+    if (kind === "water") {
+      const color =
+        lvl === "high"
+          ? "text-blue-700"
+          : lvl === "moderate" || lvl === "medium"
+          ? "text-blue-500"
+          : lvl === "low"
+          ? "text-blue-400"
+          : "text-blue-500";
+      return <Droplets className={`h-4 w-4 ${color}`} />;
+    }
+    const soilColor = lvl.includes("drain")
+      ? "text-emerald-600"
+      : "text-emerald-500";
+    return <Layers className={`h-4 w-4 ${soilColor}`} />;
+  };
+
+  const careLevelLabel = (
+    kind: "light" | "water" | "soil",
+    level: string | null
+  ): string | null => {
+    if (!level) return null;
+    const lvl = level.toLowerCase();
+    if (kind === "light") {
+      if (lvl === "high" || lvl.includes("full")) return "full sun";
+    }
+    return level;
   };
 
   const getScheduleIcon = (type: string) => {
@@ -182,22 +251,47 @@ export default function PlantScannerPage() {
     }
   };
 
+  const formatInterval = (days: number) => {
+    if (days >= 365) {
+      const years = Math.round(days / 365);
+      return `${years} year${years > 1 ? "s" : ""}`;
+    }
+    if (days >= 30) {
+      const months = Math.round(days / 30);
+      return `${months} month${months > 1 ? "s" : ""}`;
+    }
+    if (days >= 7) {
+      const weeks = Math.round(days / 7);
+      return `${weeks} week${weeks > 1 ? "s" : ""}`;
+    }
+    return `${days} day${days > 1 ? "s" : ""}`;
+  };
+
   const submitHandler = async () => {
     if (!plantData) return;
 
     try {
-      const res = await fetch("/api/plants/add", {
-        method: "POST",
-        body: JSON.stringify({
+      const form = new FormData();
+      if (selectedFile) {
+        form.append("image", selectedFile);
+      }
+      form.append(
+        "payload",
+        JSON.stringify({
           label: plantData.ai.label,
-          imageUrl: plantData.imageUrl,
           part: plantData.ai.part,
           plantingPlan: plantData.ai.plantingPlan,
           care: plantData.ai.care,
           schedule: plantData.ai.schedule,
           notes: plantData.ai.notes,
-        }),
-        headers: { "Content-Type": "application/json" },
+          recommendedProducts: Array.isArray(plantData.productRecommendations)
+            ? plantData.productRecommendations
+            : [],
+        })
+      );
+      const res = await fetch("/api/plants/add", {
+        method: "POST",
+        body: form,
       });
       if (!res.ok) {
         const msg = await res.text().catch(() => "");
@@ -458,9 +552,29 @@ export default function PlantScannerPage() {
                   <h4 className="font-medium mb-2 flex items-center gap-2 text-[15px] tracking-[0.01em]">
                     <Sun className="h-4 w-4" />
                     Light Requirements
+                    {careLevelLabel(
+                      "light",
+                      careLevel(plantData.ai.care.light as unknown)
+                    ) && (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] leading-4 px-1.5 py-0 capitalize"
+                      >
+                        {careLevelLabel(
+                          "light",
+                          careLevel(plantData.ai.care.light as unknown)
+                        )}
+                      </Badge>
+                    )}
                   </h4>
-                  <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed">
-                    {plantData.ai.care.light}
+                  <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed flex items-start gap-2">
+                    <span className="mt-0.5">
+                      {careLevelIcon(
+                        "light",
+                        careLevel(plantData.ai.care.light as unknown)
+                      )}
+                    </span>
+                    <span>{careText(plantData.ai.care.light as unknown)}</span>
                   </p>
                 </div>
 
@@ -470,20 +584,60 @@ export default function PlantScannerPage() {
                   <h4 className="font-medium mb-2 flex items-center gap-2 text-[15px] tracking-[0.01em]">
                     <Droplets className="h-4 w-4" />
                     Watering
+                    {careLevelLabel(
+                      "water",
+                      careLevel(plantData.ai.care.water as unknown)
+                    ) && (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] leading-4 px-1.5 py-0 capitalize"
+                      >
+                        {careLevelLabel(
+                          "water",
+                          careLevel(plantData.ai.care.water as unknown)
+                        )}
+                      </Badge>
+                    )}
                   </h4>
-                  <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed">
-                    {plantData.ai.care.water}
+                  <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed flex items-start gap-2">
+                    <span className="mt-0.5">
+                      {careLevelIcon(
+                        "water",
+                        careLevel(plantData.ai.care.water as unknown)
+                      )}
+                    </span>
+                    <span>{careText(plantData.ai.care.water as unknown)}</span>
                   </p>
                 </div>
 
                 <Separator />
 
                 <div>
-                  <h4 className="font-medium mb-2 text-[15px] tracking-[0.01em]">
-                    Soil Requirements
+                  <h4 className="font-medium mb-2 text-[15px] tracking-[0.01em] flex items-center gap-2">
+                    <span>Soil Requirements</span>
+                    {careLevelLabel(
+                      "soil",
+                      careLevel(plantData.ai.care.soil as unknown)
+                    ) && (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] leading-4 px-1.5 py-0 capitalize"
+                      >
+                        {careLevelLabel(
+                          "soil",
+                          careLevel(plantData.ai.care.soil as unknown)
+                        )}
+                      </Badge>
+                    )}
                   </h4>
-                  <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed">
-                    {plantData.ai.care.soil}
+                  <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed flex items-start gap-2">
+                    <span className="mt-0.5">
+                      {careLevelIcon(
+                        "soil",
+                        careLevel(plantData.ai.care.soil as unknown)
+                      )}
+                    </span>
+                    <span>{careText(plantData.ai.care.soil as unknown)}</span>
                   </p>
                 </div>
               </CardContent>
@@ -523,8 +677,7 @@ export default function PlantScannerPage() {
                             variant="outline"
                             className="text-xs rounded-full"
                           >
-                            Every {item.intervalDays} day
-                            {item.intervalDays > 1 ? "s" : ""}
+                            Every {formatInterval(item.intervalDays)}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground text-[15px] tracking-[0.01em] leading-relaxed">
@@ -611,6 +764,53 @@ export default function PlantScannerPage() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Recommended Products */}
+            {Array.isArray(plantData.productRecommendations) &&
+              plantData.productRecommendations.length > 0 && (
+                <Card className="rounded-xl florabyte-card-shadow mt-6">
+                  <CardHeader>
+                    <CardTitle className="font-heading font-semibold">
+                      Recommended Products
+                    </CardTitle>
+                    <CardDescription className="text-[15px] tracking-[0.01em]">
+                      Tailored to your plant’s care needs
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      {plantData.productRecommendations.map(
+                        (p: ProductRecommendation) => (
+                          <Link
+                            key={p._id ?? p.name}
+                            href={`/products/${toSlug(
+                              p.name,
+                              String(p._id ?? "id")
+                            )}`}
+                            className="min-w-[220px] w-56 flex-shrink-0"
+                          >
+                            <div className="rounded-lg overflow-hidden border bg-card hover:shadow-md transition-shadow">
+                              <div className="relative w-full aspect-square bg-muted">
+                                <Image
+                                  src={p.imgUrl}
+                                  alt={p.name}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                              <div className="p-3">
+                                <p className="text-sm font-medium line-clamp-2">
+                                  {p.name}
+                                </p>
+                              </div>
+                            </div>
+                          </Link>
+                        )
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-3 pt-4">

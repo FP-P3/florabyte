@@ -1,39 +1,36 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import ProductCard from "@/components/ProductCard";
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react"; // Import ikon
 
 type Product = any;
 
 export default function ProductsPage() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
   const pageSize = 12;
   const [loading, setLoading] = useState(false);
 
-  // debounce search
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search.trim()), 400);
-    return () => clearTimeout(t);
-  }, [search]);
-
   useEffect(() => {
     fetchProducts();
     // reset ke page 1 jika filter berubah (kecuali saat hanya ganti page)
-  }, [selectedCategory, debouncedSearch, page]);
+  }, [selectedCategory, query, page]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
       const qs = new URLSearchParams();
-      if (debouncedSearch) qs.set("q", debouncedSearch);
+      if (query) qs.set("q", query);
       if (selectedCategory) qs.set("category", selectedCategory);
       qs.set("page", String(page));
       qs.set("pageSize", String(pageSize));
@@ -67,6 +64,10 @@ export default function ProductsPage() {
       });
       if (response.ok) {
         toast.success("Product added to cart!");
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("cart:refresh"));
+        }
+        router.refresh();
       } else {
         const errorData = await response.json();
         toast.error(errorData.message || "Failed to add to cart.");
@@ -95,23 +96,44 @@ export default function ProductsPage() {
 
   return (
     <main className="min-h-screen page-bg-home text-foreground">
-      <section className="mx-auto max-w-7xl px-4 md:px-6 py-12 md:py-16">
-        <h1 className="text-3xl md:text-4xl font-bold text-center mb-8">
-          Our Products
-        </h1>
+      {/* Full Width Banner */}
+      <section className="w-full">
+        <img
+          src="/productbanner.jpg"
+          alt="Products Banner"
+          className="w-full h-auto object-cover"
+        />
+      </section>
 
+      <section className="mx-auto max-w-7xl px-4 md:px-6 py-12 md:py-16">
         {/* Search */}
         <div className="mx-auto mb-6 max-w-2xl">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setQuery(search.trim());
               setPage(1);
             }}
-            placeholder="Search products or categories..."
-            className="w-full rounded-lg border px-4 py-2 outline-none focus:ring-2 focus:ring-emerald-500"
-          />
+            className="flex gap-2"
+          >
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+              }}
+              placeholder="Search products or categories..."
+              className="flex-1 rounded-lg border-2 border-gray-300 px-4 py-2 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            />
+            <button
+              type="submit"
+              className="rounded-lg bg-emerald-600 text-white px-4 py-2 text-sm font-medium hover:bg-emerald-700 shadow disabled:opacity-50"
+              disabled={loading}
+              aria-label="Search products"
+            >
+              {loading && query ? 'Searching…' : 'Search'}
+            </button>
+          </form>
         </div>
 
         {/* Category cards (tanpa All, wrap pakai grid) */}
@@ -171,32 +193,36 @@ export default function ProductsPage() {
             : `Showing ${showingFrom}-${showingTo} of ${total} items`}
         </div>
 
-        {/* Grid: 6 kolom di semua ukuran */}
-        <div className="grid gap-2 sm:gap-3 grid-cols-6">
-          {products.length === 0 && !loading ? (
-            <div className="col-span-full text-center text-gray-500">
-              No products found.
-            </div>
-          ) : (
-            products.map((product: any, index: number) => (
-              <ProductCard
-                key={product._id || index}
-                product={product}
-                onAddToCart={handleAddToCart}
-              />
-            ))
-          )}
+        {/* Wrapper to control grid width */}
+        <div className="mx-auto max-w-5xl">
+          {/* Grid: Responsif, 2 kolom di mobile, 6 di desktop */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {products.length === 0 && !loading ? (
+              <div className="col-span-full text-center text-gray-500">
+                No products found.
+              </div>
+            ) : (
+              products.map((product: any, index: number) => (
+                <ProductCard
+                  key={product._id || index}
+                  product={product}
+                  onAddToCart={handleAddToCart}
+                />
+              ))
+            )}
+          </div>
         </div>
 
         {/* Pagination */}
         {pages > 1 && (
           <div className="mt-8 flex items-center justify-center gap-2">
             <button
-              className="px-3 py-2 rounded border disabled:opacity-50"
+              className="h-10 w-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1 || loading}
+              aria-label="Previous Page"
             >
-              Prev
+              <ChevronLeft className="h-5 w-5" />
             </button>
             {Array.from({ length: pages }).map((_, i) => {
               const p = i + 1;
@@ -213,11 +239,10 @@ export default function ProductsPage() {
                   <button
                     key={p}
                     onClick={() => setPage(p)}
-                    className={`px-3 py-2 rounded border ${
-                      isActive
-                        ? "bg-emerald-600 text-white border-emerald-600"
-                        : "bg-white hover:bg-gray-100"
-                    }`}
+                    className={`h-10 w-10 rounded-full font-semibold transition-all ${isActive
+                      ? "bg-emerald-600 text-white scale-110 shadow-lg shadow-emerald-500/30"
+                      : "bg-white hover:bg-gray-100 hover:border-gray-300 border border-transparent"
+                      }`}
                     disabled={loading}
                   >
                     {p}
@@ -226,7 +251,10 @@ export default function ProductsPage() {
               }
               if (p === page - 2 || p === page + 2) {
                 return (
-                  <span key={`dots-${p}`} className="px-2">
+                  <span
+                    key={`dots-${p}`}
+                    className="h-10 w-10 flex items-center justify-center text-gray-500"
+                  >
                     …
                   </span>
                 );
@@ -234,11 +262,12 @@ export default function ProductsPage() {
               return null;
             })}
             <button
-              className="px-3 py-2 rounded border disabled:opacity-50"
+              className="h-10 w-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => setPage((p) => Math.min(pages, p + 1))}
               disabled={page === pages || loading}
+              aria-label="Next Page"
             >
-              Next
+              <ChevronRight className="h-5 w-5" />
             </button>
           </div>
         )}

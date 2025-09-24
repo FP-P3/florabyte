@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -24,6 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { toSlug } from "@/lib/slug";
 import {
   Trash2,
   Droplets,
@@ -38,7 +40,11 @@ import {
   AlertTriangle,
   Package,
   Scissors,
+  Leaf,
+  FileText,
+  Home,
 } from "lucide-react";
+// (Removed unused ProductType import)
 
 // New flexible types to accommodate updated backend shape
 type DateValue = string | { $date: string };
@@ -97,6 +103,7 @@ export default function PlantDetail() {
   const [plant, setPlant] = useState<PlantData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  // Removed unused recommended products fallback & legacy care helpers (careText, careLevel*, etc.)
 
   useEffect(() => {
     const load = async () => {
@@ -360,11 +367,23 @@ export default function PlantDetail() {
               <Badge variant="outline">{plant.label.family}</Badge>
             </div>
           </div>
+          <div className="flex items-start">
+            <Button asChild variant="secondary" size="sm">
+              <Link href="/plants">
+                <Home className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
       {/* Image Section */}
-      <Card className="mb-8">
-        <CardContent className="p-4">
+      <Card className="mb-8 relative overflow-hidden">
+        {/* Background icon */}
+        <div className="pointer-events-none absolute -top-8 -right-8">
+          <Leaf className="w-48 h-48 text-primary/10 blur-2xl" />
+        </div>
+        <CardContent className="p-4 relative z-10">
           {/* Use h2 to keep a single h1 per page */}
           <h2 className="text-2xl font-semibold mb-4 text-center">
             Plant Image
@@ -382,14 +401,18 @@ export default function PlantDetail() {
 
       <div className="grid gap-8 md:grid-cols-2">
         {/* Scientific Information */}
-        <Card>
-          <CardHeader>
+        <Card className="relative overflow-hidden">
+          {/* Background icon */}
+          <div className="pointer-events-none absolute -top-6 -right-6">
+            <Sprout className="w-40 h-40 text-primary/10 blur-2xl" />
+          </div>
+          <CardHeader className="relative z-10">
             <CardTitle className="flex items-center gap-2">
               <Sprout className="h-5 w-5 text-primary" />
               Scientific Information
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 relative z-10">
             <div>
               <p className="font-medium text-sm text-muted-foreground">
                 Scientific Name
@@ -424,8 +447,12 @@ export default function PlantDetail() {
         </Card>
 
         {/* Care Instructions */}
-        <Card>
-          <CardHeader>
+        <Card className="relative overflow-hidden">
+          {/* Background icon */}
+          <div className="pointer-events-none absolute -top-6 -right-6">
+            <Sun className="w-40 h-40 text-amber-500/10 blur-2xl" />
+          </div>
+          <CardHeader className="relative z-10">
             <CardTitle className="flex items-center gap-2">
               <Sun className="h-5 w-5 text-primary" />
               Care Instructions
@@ -484,12 +511,16 @@ export default function PlantDetail() {
       </div>
 
       {/* Planting Plan */}
-      <Card className="mt-8">
-        <CardHeader>
+      <Card className="mt-8 relative overflow-hidden">
+        {/* Background icon */}
+        <div className="pointer-events-none absolute -top-6 -right-6">
+          <Layers className="w-40 h-40 text-primary/10 blur-2xl" />
+        </div>
+        <CardHeader className="relative z-10">
           <CardTitle>Planting Plan</CardTitle>
           <CardDescription>Step-by-step guide for planting</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 relative z-10">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <p className="font-medium text-sm text-muted-foreground mb-1">
@@ -530,15 +561,19 @@ export default function PlantDetail() {
       </Card>
 
       {/* Care Schedule */}
-      <Card className="mt-8">
-        <CardHeader>
+      <Card className="mt-8 relative overflow-hidden">
+        {/* Background icon */}
+        <div className="pointer-events-none absolute -top-6 -right-6">
+          <Calendar className="w-40 h-40 text-primary/10 blur-2xl" />
+        </div>
+        <CardHeader className="relative z-10">
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-primary" />
             Care Schedule
           </CardTitle>
           <CardDescription>Regular maintenance tasks</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="relative z-10">
           <div className="space-y-4">
             {plant.schedule.map((task, index) => {
               const meta = getScheduleMeta(task.type);
@@ -598,14 +633,18 @@ export default function PlantDetail() {
 
       <div className="grid gap-8 md:grid-cols-2 mt-8">
         {/* Common Issues */}
-        <Card>
-          <CardHeader>
+        <Card className="relative overflow-hidden">
+          {/* Background icon */}
+          <div className="pointer-events-none absolute -top-6 -right-6">
+            <AlertTriangle className="w-40 h-40 text-destructive/10 blur-2xl" />
+          </div>
+          <CardHeader className="relative z-10">
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive" />
               Common Issues
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="relative z-10">
             <ul className="space-y-2">
               {plant.care.commonIssues.map((issue, index) => (
                 <li key={index} className="flex items-start gap-2">
@@ -618,14 +657,18 @@ export default function PlantDetail() {
         </Card>
 
         {/* Supplies Needed */}
-        <Card>
-          <CardHeader>
+        <Card className="relative overflow-hidden">
+          {/* Background icon */}
+          <div className="pointer-events-none absolute -top-6 -right-6">
+            <Package className="w-40 h-40 text-primary/10 blur-2xl" />
+          </div>
+          <CardHeader className="relative z-10">
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5 text-primary" />
               Supplies Needed
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="relative z-10">
             <ul className="space-y-2">
               {plant.care.suppliesNeeded.map((supply, index) => (
                 <li key={index} className="flex items-start gap-2">
@@ -640,11 +683,15 @@ export default function PlantDetail() {
 
       {/* Notes */}
       {plant.notes.length > 0 && (
-        <Card className="mt-8">
-          <CardHeader>
+        <Card className="mt-8 relative overflow-hidden">
+          {/* Background icon */}
+          <div className="pointer-events-none absolute -top-6 -right-6">
+            <FileText className="w-40 h-40 text-primary/10 blur-2xl" />
+          </div>
+          <CardHeader className="relative z-10">
             <CardTitle>Additional Notes</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="relative z-10">
             <ul className="space-y-3">
               {plant.notes.map((note, index) => (
                 <li key={index} className="flex items-start gap-3">
@@ -672,42 +719,46 @@ export default function PlantDetail() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-6 md:grid-cols-3">
-              {plant.recommendedProducts.map((prod) => (
-                <div
-                  key={prod._id}
-                  className="rounded-lg border p-3 flex flex-col gap-3 bg-card/50"
-                >
-                  <div className="relative w-full aspect-video overflow-hidden rounded-md bg-muted">
-                    <Image
-                      src={prod.imgUrl || "/placeholder.svg"}
-                      alt={prod.name}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="font-semibold leading-snug line-clamp-2">
-                      {prod.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground line-clamp-3">
-                      {prod.description}
-                    </p>
-                    <p className="text-sm font-medium text-foreground mt-1">
-                      {formatPrice(prod.price)}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground mt-auto">
-                    <span className="capitalize">{prod.category}</span>
-                    <span>Stock: {prod.stock}</span>
-                  </div>
-                </div>
-              ))}
+              {plant.recommendedProducts.map((prod) => {
+                const slug = toSlug(prod.name, prod._id);
+                return (
+                  <Link
+                    key={prod._id}
+                    href={`/products/${slug}`}
+                    className="group rounded-lg border p-3 flex flex-col gap-3 bg-card/50 hover:shadow-md transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  >
+                    <div className="relative w-full aspect-video overflow-hidden rounded-md bg-muted">
+                      <Image
+                        src={prod.imgUrl || "/placeholder.svg"}
+                        alt={prod.name}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                        {prod.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground line-clamp-3">
+                        {prod.description}
+                      </p>
+                      <p className="text-sm font-medium text-foreground mt-1">
+                        {formatPrice(prod.price)}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mt-auto">
+                      <span className="capitalize">{prod.category}</span>
+                      <span>Stock: {prod.stock}</span>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
       )}
 
-      <div className="mt-8 flex justify-center">
+      <div className="mt-8 flex justify-center gap-3 flex-wrap">
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="destructive" size="lg">

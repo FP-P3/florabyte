@@ -248,7 +248,10 @@ function Features() {
 function CTA() {
   return (
     <section id="get-started" className="mx-auto max-w-7xl px-4 md:px-6 py-16">
-      <Card className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 to-emerald-700 text-white shadow-xl">
+      <Card
+        className="relative overflow-hidden rounded-3xl bg-cover bg-center text-white shadow-xl"
+        style={{ backgroundImage: "url(/banner.jpg)" }}
+      >
         <CardContent className="p-8">
           <h2 className="text-2xl md:text-3xl font-bold">
             Start caring for your plants like a pro
@@ -260,13 +263,6 @@ function CTA() {
           <div className="mt-6 flex flex-wrap gap-3">
             <Button asChild variant="secondary">
               <Link href="/register">Create account</Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="bg-blue-500 border-blue-500 text-black hover:bg-blue-600 hover:text-white transition-colors"
-            >
-              <Link href="/login">Continue with Google</Link>
             </Button>
           </div>
           <ul className="mt-6 grid gap-2 text-sm/6 md:grid-cols-3">

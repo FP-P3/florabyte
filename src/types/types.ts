@@ -48,6 +48,7 @@ export interface PlantAnalysis {
 }
 
 export interface ProductRecommendation {
+  _id?: string;
   name: string;
   description: string;
   price: number;
@@ -104,7 +105,7 @@ export interface PlantData {
       confidence: number;
     }>;
   };
-  productRecommendations: [];
+  productRecommendations: ProductRecommendation[];
 }
 
 // Document shape returned by /api/plants
