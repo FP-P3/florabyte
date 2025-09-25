@@ -7,7 +7,7 @@ import {
   ProductDoc,
   ProductRecommendation,
 } from "@/types/types";
-import { EmbedContentResponse, GoogleGenAI } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
 export const runtime = "nodejs";
 
@@ -158,97 +158,54 @@ export async function POST(request: Request) {
       aiJson?.label?.commonName ||
       "this plant";
 
-    // Extract AI-provided vectorSearch cues when present
-    const vs: { query?: string; keywords?: string[] } =
-      (
-        aiJson as unknown as {
-          productRecommendations?: {
-            vectorSearch?: { query?: string; keywords?: string[] };
-          };
-        }
-      )?.productRecommendations?.vectorSearch ?? {};
-    const aiKeywords: string[] = Array.isArray(vs?.keywords)
-      ? (vs.keywords as string[])
-      : [];
-
-    // Build a list of search terms: individual keywords + supplies (deduped)
-    const termSet = new Set<string>();
-    for (const k of aiKeywords) {
-      const s = String(k || "").trim();
-      if (s) termSet.add(s);
+    // --- Vector search aggregation (per-keyword embeddings) ---
+    interface AIRecoShape {
+      productRecommendations?: { vectorSearch?: { keywords?: string[] } };
     }
-    for (const s of supplies) {
-      const t = String(s || "").trim();
+    const vs = (aiJson as AIRecoShape).productRecommendations?.vectorSearch;
+    const rawKeywords = Array.isArray(vs?.keywords) ? vs!.keywords! : [];
+    const termSet = new Set<string>();
+    for (const k of rawKeywords) {
+      const t = String(k || "").trim();
       if (t) termSet.add(t);
     }
-    // Fallback to species name if nothing else
-    if (termSet.size === 0 && species) termSet.add(species);
-    const searchTerms = Array.from(termSet).slice(0, 12); // cap to avoid long latency
-
-    console.log(searchTerms, "<- searchTerms for vector search");
-
-    // Derive desired categories from AI keywords/supplies (align with Products.category values)
-    const deriveCategories = (words: string[]): string[] => {
-      const out = new Set<string>();
-      for (const w of words) {
-        const s = String(w).toLowerCase();
-        if (/fertil/i.test(s) || /npk/.test(s) || /kompos/.test(s))
-          out.add("fertilizer");
-        if (
-          /soil|media|potting|coco|peat|perlite|vermiculite|bark|moss/i.test(s)
-        )
-          out.add("soil");
-        if (/pest|insect|fungic|mite|herbicide|pestisida|insektisida/i.test(s))
-          out.add("pesticide");
-        if (
-          /tool|shear|gunting|sekop|shovel|sprayer|meter|glove|scissor|pot/i.test(
-            s
-          )
-        )
-          out.add("tools");
-      }
-      return Array.from(out);
-    };
-    const categoriesWanted = deriveCategories([...aiKeywords, ...supplies]);
+    for (const sup of supplies) {
+      const t = String(sup || "").trim();
+      if (t) termSet.add(t);
+    }
+    if (species) termSet.add(species);
+    const terms = Array.from(termSet).slice(0, 15);
+    console.log("vector terms:", terms);
 
     const Products = db.collection<ProductDoc>(PRODUCTS_COLL);
-
-    // Aggregate results across per-term vector searches
-    interface AccumProduct extends ProductRecommendation {
+    interface AggProd extends ProductRecommendation {
       score: number;
     }
-    const productMap = new Map<string, AccumProduct>();
+    const productMap = new Map<string, AggProd>();
+    const diagnostics: Record<string, number> = {};
 
-    for (const term of searchTerms) {
+    for (const term of terms) {
       try {
-        const emb: EmbedContentResponse = await ai.models.embedContent({
+        const emb = await ai.models.embedContent({
           model: MODEL_EMBED,
           contents: term,
         });
         const vec = emb?.embeddings?.[0]?.values ?? [];
-        if (!Array.isArray(vec) || vec.length === 0) continue;
-
-        const baseFilter: {
-          stock: { $gt: number };
-          category?: { $in: string[] };
-        } = {
-          stock: { $gt: 0 },
-        };
-        if (categoriesWanted.length > 0) {
-          baseFilter.category = { $in: categoriesWanted };
+        if (!Array.isArray(vec) || vec.length === 0) {
+          diagnostics[`embed_empty_${term}`] = 1;
+          continue;
         }
-
-        const termPipeline = [
+        let pipeline: Record<string, unknown>[] = [
           {
             $vectorSearch: {
               index: VECTOR_INDEX,
               path: "embedding",
               queryVector: vec,
               numCandidates: 80,
-              limit: 10,
-              filter: baseFilter,
+              limit: 12,
             },
           },
+          { $match: { stock: { $gt: 0 } } },
           {
             $project: {
               _id: 1,
@@ -258,107 +215,74 @@ export async function POST(request: Request) {
               stock: 1,
               imgUrl: 1,
               category: 1,
-              vectScore: { $meta: "vectorSearchScore" },
+              score: { $meta: "vectorSearchScore" },
             },
           },
-          {
-            $addFields: {
-              vectScoreSafe: { $ifNull: ["$vectScore", 0] },
-              categoryBoost: {
-                $cond: [{ $in: ["$category", categoriesWanted] }, 0.15, 0],
-              },
-              stockBoost: { $min: [{ $divide: ["$stock", 100] }, 0.2] },
-              finalScore: {
-                $add: ["$vectScoreSafe", "$categoryBoost", "$stockBoost"],
-              },
-            },
-          },
-          { $sort: { finalScore: -1 } },
           { $limit: 6 },
-          {
-            $project: {
-              _id: 1,
-              name: 1,
-              description: 1,
-              price: 1,
-              stock: 1,
-              imgUrl: 1,
-              category: 1,
-              score: "$finalScore",
-            },
-          },
         ];
-
-        const termResults = await Products.aggregate<AccumProduct>(
-          termPipeline
-        ).toArray();
-
-        for (const prod of termResults) {
-          if (!prod?._id) continue;
-          const id = String(prod._id);
+        let res: AggProd[] = [];
+        try {
+          res = await Products.aggregate<AggProd>(pipeline).toArray();
+        } catch (innerErr) {
+          const msg =
+            innerErr instanceof Error ? innerErr.message : String(innerErr);
+          // If still index-related, retry without the $match stage (accept all, we'll filter manually)
+          if (/needs to be indexed/i.test(msg)) {
+            diagnostics[`retry_no_match_${term}`] = 1;
+            pipeline = [
+              {
+                $vectorSearch: {
+                  index: VECTOR_INDEX,
+                  path: "embedding",
+                  queryVector: vec,
+                  numCandidates: 80,
+                  limit: 12,
+                },
+              },
+              {
+                $project: {
+                  _id: 1,
+                  name: 1,
+                  description: 1,
+                  price: 1,
+                  stock: 1,
+                  imgUrl: 1,
+                  category: 1,
+                  score: { $meta: "vectorSearchScore" },
+                },
+              },
+            ];
+            const retryRes = await Products.aggregate<AggProd>(
+              pipeline
+            ).toArray();
+            res = retryRes.filter(
+              (p: AggProd) => typeof p.stock === "number" && p.stock > 0
+            );
+          } else {
+            throw innerErr;
+          }
+        }
+        diagnostics[`hits_${term}`] = res.length;
+        for (const r of res) {
+          if (!r?._id) continue;
+          const id = String(r._id);
           const existing = productMap.get(id);
-          if (!existing || prod.score > existing.score) {
-            productMap.set(id, { ...prod, score: prod.score });
+          if (!existing || r.score > existing.score) {
+            productMap.set(id, r);
           }
         }
       } catch (e) {
-        console.warn("Embedding/vector search failed for term", term, e);
+        diagnostics[`error_${term}`] = 1;
+        console.warn("vector term failed", term, e);
       }
     }
 
-    let productRecommendations: ProductRecommendation[] = Array.from(
+    const productRecommendations: ProductRecommendation[] = Array.from(
       productMap.values()
     )
       .sort((a, b) => b.score - a.score)
       .slice(0, 8)
       .map((p) => ({ ...p }));
-
-    // Sanitize scores to ensure no null/undefined propagate
-    const normalizeScore = (val: unknown): number =>
-      typeof val === "number" && Number.isFinite(val) ? val : 0;
-    productRecommendations = productRecommendations.map((p) => ({
-      ...p,
-      score: normalizeScore((p as ProductRecommendation).score as unknown),
-    }));
-
-    // Fallbacks if still empty
-    if (!productRecommendations || productRecommendations.length === 0) {
-      // Simple top-stock fallback with constant score 0.4 as requested
-      const fallbackMatch: Record<string, unknown> = { stock: { $gt: 0 } };
-      const fallbackPipeline: Record<string, unknown>[] = [
-        { $match: fallbackMatch },
-        {
-          $addFields: {
-            categoryBoost: {
-              $cond: [{ $in: ["$category", categoriesWanted] }, 0.15, 0],
-            },
-            stockBoost: { $min: [{ $divide: ["$stock", 100] }, 0.2] },
-            finalScore: { $add: ["$stockBoost", "$categoryBoost"] },
-          },
-        },
-        { $sort: { finalScore: -1 } },
-        { $limit: 8 },
-        {
-          $project: {
-            _id: 1,
-            name: 1,
-            description: 1,
-            price: 1,
-            stock: 1,
-            imgUrl: 1,
-            category: 1,
-            score: "$finalScore",
-          },
-        },
-      ];
-      productRecommendations = await Products.aggregate<ProductRecommendation>(
-        fallbackPipeline
-      ).toArray();
-      productRecommendations = productRecommendations.map((p) => ({
-        ...p,
-        score: normalizeScore(p.score as unknown),
-      }));
-    }
 
     return new Response(
       JSON.stringify({
@@ -366,6 +290,8 @@ export async function POST(request: Request) {
         imageUrl,
         ai: aiJson,
         productRecommendations,
+        terms,
+        diagnostics,
       }),
       { status: 200 }
     );
