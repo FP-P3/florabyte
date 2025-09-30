@@ -1,0 +1,49 @@
+import type { Metadata } from "next";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import "./globals.css";
+import Navbar from "@/components/Navbar";
+import { Toaster } from "react-hot-toast";
+import Providers from "@/helpers/providers";
+
+// const geistSans = Geist({
+//   variable: "--font-geist-sans",
+//   subsets: ["latin"],
+// });
+
+// const geistMono = Geist_Mono({
+//   variable: "--font-geist-mono",
+//   subsets: ["latin"],
+// });
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-plus-jakarta",
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  title: "Florabyte",
+  description: "Your personal plant care assistant",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <body className={`${inter.variable} ${plusJakarta.variable} antialiased`}>
+        <Navbar />
+        <Toaster />
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  );
+}
