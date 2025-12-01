@@ -10,6 +10,11 @@ import type {
   ProductRecommendation,
   ScheduleItem,
 } from "@/types/types";
+import type {
+  GeminiAnalysisResult,
+  ProductFetchResult,
+  AIRecoShape,
+} from "@/types/plantType";
 
 const aiClient = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY! });
 const MODEL_VISION = process.env.GEMINI_MODEL || "";
@@ -100,26 +105,6 @@ export class GeminiParsingError extends Error {
     super("AI returned non-JSON");
     this.name = "GeminiParsingError";
   }
-}
-
-type GeminiAnalysisResult = {
-  aiJson: PlantAnalysis;
-  raw: string;
-  cleaned: string;
-  accepted: boolean;
-  reason?: string;
-  supplies: string[];
-  species: string;
-};
-
-type ProductFetchResult = {
-  productRecommendations: ProductRecommendation[];
-  terms: string[];
-  diagnostics: Record<string, number>;
-};
-
-interface AIRecoShape {
-  productRecommendations?: { vectorSearch?: { keywords?: string[] } };
 }
 
 export class PlantModel {
