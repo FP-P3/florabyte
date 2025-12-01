@@ -2,6 +2,7 @@ import { ObjectId } from "mongodb";
 import { GoogleGenAI } from "@google/genai";
 import cloudinary from "../config/cloudinary";
 import { db } from "../config/mongodb";
+import type { UploadApiResponse } from "cloudinary";
 import type {
   Care,
   EmptyObj,
@@ -14,6 +15,7 @@ import type {
   GeminiAnalysisResult,
   ProductFetchResult,
   AIRecoShape,
+  PlantSavePayload,
 } from "@/types/plantType";
 
 const aiClient = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY! });
@@ -104,6 +106,13 @@ export class GeminiParsingError extends Error {
   constructor(public raw: string, public cleaned: string) {
     super("AI returned non-JSON");
     this.name = "GeminiParsingError";
+  }
+}
+
+export class PlantRequestError extends Error {
+  constructor(message: string, public statusCode = 400) {
+    super(message);
+    this.name = "PlantRequestError";
   }
 }
 
@@ -347,5 +356,54 @@ export class PlantModel {
     return cloudinary.uploader.destroy(publicId, {
       resource_type: "image",
     });
+  }
+
+  static parseAddPlantForm(form: FormData): {
+    file: File;
+    payload: PlantSavePayload;
+  } {
+    const fileEntry = form.get("image");
+    const payloadEntry = form.get("payload");
+    if (!(fileEntry instanceof File)) {
+      throw new PlantRequestError("Missing image file");
+    }
+    if (typeof payloadEntry !== "string") {
+      throw new PlantRequestError("Missing payload data");
+    }
+
+    let payload: PlantSavePayload;
+    try {
+      payload = JSON.parse(payloadEntry) as PlantSavePayload;
+    } catch {
+      throw new PlantRequestError("Invalid payload JSON");
+    }
+
+    return { file: fileEntry, payload };
+  }
+
+  static async uploadPlantImage(file: File): Promise<string> {
+    const arrayBuf = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuf);
+
+    const cloudinaryResponse = await new Promise<UploadApiResponse>(
+      (resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream(
+            {
+              folder: "plants",
+              resource_type: "image",
+              transformation: [{ fetch_format: "auto", quality: "auto" }],
+            },
+            (err, result) =>
+              err ? reject(err) : resolve(result as UploadApiResponse)
+          )
+          .end(buffer);
+      }
+    );
+
+    if (!cloudinaryResponse.secure_url) {
+      throw new Error("Image upload failed");
+    }
+    return cloudinaryResponse.secure_url;
   }
 }

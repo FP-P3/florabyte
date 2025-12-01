@@ -1,4 +1,11 @@
-import type { PlantAnalysis, ProductRecommendation } from "@/types/types";
+import type {
+  PlantAnalysis,
+  ProductRecommendation,
+  PlantingPlan,
+  Care,
+  EmptyObj,
+  ScheduleItem,
+} from "@/types/types";
 
 export type GeminiAnalysisResult = {
   aiJson: PlantAnalysis;
@@ -19,3 +26,13 @@ export type ProductFetchResult = {
 export interface AIRecoShape {
   productRecommendations?: { vectorSearch?: { keywords?: string[] } };
 }
+
+export type PlantSavePayload = {
+  label: Record<string, unknown>;
+  part: string;
+  plantingPlan: PlantingPlan | EmptyObj;
+  care: Care | EmptyObj;
+  schedule: ScheduleItem[];
+  notes: string[];
+  recommendedProducts?: ProductRecommendation[];
+};
